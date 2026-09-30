@@ -1,7 +1,22 @@
 /**
- * Civic Mapper Component Library
- * Lightweight, reusable UI components
+ * Civic Mapper component library, AVL GO recipes (docs/avlgo-style-guide.md §6).
+ * Colours, radii and shadows come only from the tokens in design-system.css.
  */
+
+/* ========================================
+   LAYOUT TOKENS SHARED BY THE PAGES
+   ======================================== */
+
+:root {
+  /* Side gutter for the header and page content: 12 / 16 / 24 px. (AVL GO's list pages use
+     12 / 24 / 32; the map is full-bleed, so the land map keeps a little more room.) */
+  --app-gutter: 12px;
+  /* The site header is one 64 px row (+1 px border) from 1024 px up, two rows below. */
+  --site-header-h: 65px;
+}
+@media (min-width: 640px) { :root { --app-gutter: 16px; } }
+@media (min-width: 1024px) { :root { --app-gutter: 24px; } }
+@media (max-width: 1023px) { :root { --site-header-h: 93px; } }
 
 /* ========================================
    BUTTONS
@@ -12,14 +27,15 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: var(--avl-text-sm);
   font-weight: var(--font-medium);
-  line-height: 1.5;
-  border-radius: var(--radius-lg);
+  line-height: var(--avl-lh-sm);
+  border-radius: var(--avl-radius-lg);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
   text-decoration: none;
   white-space: nowrap;
   user-select: none;
@@ -30,58 +46,80 @@
   cursor: not-allowed;
 }
 
+.btn svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* Primary: brand fill, same in dark */
 .btn-primary {
-  background-color: var(--accent-primary);
-  color: var(--text-inverse);
-  border-color: var(--accent-primary);
+  background-color: var(--avl-accent);
+  border-color: var(--avl-accent);
+  color: var(--avl-on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--accent-primary-hover);
-  border-color: var(--accent-primary-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  background-color: var(--avl-accent-hover);
+  border-color: var(--avl-accent-hover);
 }
 
+/* Secondary: outline */
 .btn-secondary {
-  background-color: var(--accent-secondary);
-  color: var(--text-inverse);
-  border-color: var(--accent-secondary);
+  background-color: transparent;
+  border-color: var(--avl-border-strong);
+  color: var(--avl-text-label);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: var(--accent-secondary-hover);
-  border-color: var(--accent-secondary-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  background-color: var(--avl-bg-subtle);
 }
 
+/* Ghost: the neutral toolbar button. Civic Mapper uses .btn-ghost for every secondary action
+   (Cancel, Invert, Property record, the map's full-screen toggle), so it keeps a surface and a
+   border rather than AVL GO's borderless ghost; .btn-plain below is the borderless one. */
 .btn-ghost {
-  background-color: transparent;
-  color: var(--text-secondary);
-  border-color: var(--border-default);
+  background-color: var(--avl-bg-control);
+  border-color: var(--avl-border-strong);
+  color: var(--avl-text-label);
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background-color: var(--bg-surface);
-  border-color: var(--border-strong);
-  color: var(--text-primary);
+  background-color: var(--avl-bg-control-hover);
+  color: var(--avl-text-strong);
 }
 
+.btn-plain {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--avl-text-faint);
+}
+
+.btn-plain:hover:not(:disabled) {
+  background-color: var(--avl-bg-muted);
+  color: var(--avl-text-body);
+}
+
+/* Icon button: 30 px, radius 6 */
 .btn-icon {
-  padding: var(--space-2);
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--avl-radius-md);
+  font-size: var(--avl-text-base);
+  line-height: 1;
 }
 
 .btn-sm {
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--text-xs);
+  padding: 6px 12px;
+  font-size: var(--avl-text-sm);
+  line-height: var(--avl-lh-sm);
 }
 
 .btn-lg {
-  padding: var(--space-3) var(--space-6);
-  font-size: var(--text-base);
+  padding: 12px 24px;
+  font-size: var(--avl-text-base);
+  line-height: var(--avl-lh-base);
 }
 
 /* ========================================
@@ -89,16 +127,15 @@
    ======================================== */
 
 .card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
+  background-color: var(--avl-bg-surface);
+  border: 1px solid var(--avl-border);
+  border-radius: var(--avl-radius-xl);
   padding: var(--space-4);
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-base);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
 }
 
 .card-elevated {
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--avl-shadow-lg);
 }
 
 .card-interactive {
@@ -107,8 +144,8 @@
 
 .card-interactive:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-xl);
-  border-color: var(--border-accent);
+  box-shadow: var(--avl-shadow-lg);
+  border-color: var(--avl-brand-400);
 }
 
 .card-header {
@@ -117,15 +154,25 @@
 
 .card-title {
   margin: 0;
-  font-size: var(--text-lg);
+  font-size: var(--avl-text-base);
+  line-height: var(--avl-lh-base);
   font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  color: var(--avl-text-strong);
 }
 
 .card-description {
   margin: var(--space-2) 0 0;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--avl-text-sm);
+  color: var(--avl-text-body);
+}
+
+/* Callout: brand wash + border (guide §6 "Callout") */
+.avl-callout {
+  background: var(--avl-accent-soft-bg);
+  border: 1px solid var(--avl-callout-border);
+  border-radius: var(--avl-radius-lg);
+  padding: 12px 16px;
+  color: var(--avl-accent-soft-text);
 }
 
 /* ========================================
@@ -134,109 +181,132 @@
 
 .input {
   width: 100%;
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  color: var(--text-primary);
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  transition: all var(--transition-fast);
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: var(--avl-text-sm);
+  line-height: var(--avl-lh-sm);
+  color: var(--avl-text-strong);
+  background-color: var(--avl-bg-control);
+  border: 1px solid var(--avl-border-strong);
+  border-radius: var(--avl-radius-lg);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.input:hover {
-  border-color: var(--border-strong);
+.input::placeholder {
+  color: var(--avl-text-faint);
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--border-accent);
-  box-shadow: 0 0 0 3px var(--color-primary-100);
+  border-color: var(--avl-focus);
+  box-shadow: var(--avl-ring);
 }
 
 .input:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-  background-color: var(--color-gray-100);
 }
 
 .select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%2364748b' d='M4.427 6.427l3.396 3.396a.25.25 0 00.354 0l3.396-3.396A.25.25 0 0011.396 6H4.604a.25.25 0 00-.177.427z'/%3E%3C/svg%3E");
+  -webkit-appearance: none;
+  background-image: var(--avl-icon-chevron);
   background-repeat: no-repeat;
-  background-position: right var(--space-2) center;
-  padding-right: var(--space-8);
+  background-position: right 10px center;
+  background-size: 16px 16px;
+  padding-right: 36px;
+  cursor: pointer;
+  text-overflow: ellipsis;
 }
 
 .label {
   display: block;
-  margin-bottom: var(--space-2);
-  font-size: var(--text-sm);
+  margin-bottom: var(--space-1);
+  font-size: var(--avl-text-sm);
+  line-height: var(--avl-lh-sm);
   font-weight: var(--font-medium);
-  color: var(--text-primary);
+  color: var(--avl-text-label);
 }
 
+/* Native checkbox / radio in brand blue (guide: accent-color, 16 px) */
 .checkbox,
-.radio {
-  width: 1.125rem;
-  height: 1.125rem;
-  border: 2px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+.radio,
+.checkbox-item input[type="checkbox"],
+.radio-item input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--avl-accent);
   cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
-.radio {
-  border-radius: var(--radius-full);
-}
-
-.checkbox:checked,
-.radio:checked {
-  background-color: var(--accent-primary);
-  border-color: var(--accent-primary);
-}
-
+/* Range: 8 px track, 20 px brand thumb with a 2 px white ring (guide PriceSlider) */
 .range-slider {
   width: 100%;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background: var(--color-gray-200);
+  height: 8px;
+  border-radius: var(--avl-radius-full);
+  background: var(--avl-bg-skeleton);
   outline: none;
   appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.range-slider:focus-visible {
+  box-shadow: var(--avl-ring);
+}
+
+.range-slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .range-slider::-webkit-slider-thumb {
   appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-full);
-  background: var(--accent-primary);
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--avl-radius-full);
+  background: var(--avl-accent);
+  border: 2px solid var(--avl-on-accent);
+  box-shadow: var(--avl-shadow-md);
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
 }
 
-.range-slider::-webkit-slider-thumb:hover {
-  background: var(--accent-primary-hover);
+.range-slider:not(:disabled)::-webkit-slider-thumb:hover {
+  background: var(--avl-accent-hover);
   transform: scale(1.1);
-  box-shadow: var(--shadow-md);
 }
 
 .range-slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-full);
-  background: var(--accent-primary);
+  width: 16px;
+  height: 16px;
+  border-radius: var(--avl-radius-full);
+  background: var(--avl-accent);
+  border: 2px solid var(--avl-on-accent);
+  box-shadow: var(--avl-shadow-md);
   cursor: pointer;
-  border: none;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
 }
 
-.range-slider::-moz-range-thumb:hover {
-  background: var(--accent-primary-hover);
+.range-slider:not(:disabled)::-moz-range-thumb:hover {
+  background: var(--avl-accent-hover);
   transform: scale(1.1);
-  box-shadow: var(--shadow-md);
+}
+
+kbd {
+  display: inline-block;
+  padding: 0 5px;
+  font-family: inherit;
+  font-size: var(--avl-text-2xs);
+  line-height: 16px;
+  font-weight: var(--font-medium);
+  color: var(--avl-text-label);
+  background: var(--avl-bg-muted);
+  border: 1px solid var(--avl-border);
+  border-radius: var(--avl-radius-sm);
 }
 
 /* ========================================
@@ -246,8 +316,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: var(--bg-overlay);
-  backdrop-filter: blur(4px);
+  background-color: var(--avl-overlay);
   z-index: var(--z-modal-backdrop);
   display: none;
   align-items: center;
@@ -261,28 +330,30 @@
 }
 
 .modal {
-  background-color: var(--bg-surface);
-  border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-2xl);
+  background-color: var(--avl-bg-surface);
+  border: 1px solid var(--avl-border);
+  border-radius: var(--avl-radius-xl);
+  box-shadow: var(--avl-shadow-xl);
   max-width: 90vw;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: slideUp var(--transition-base);
+  animation: fadeIn var(--transition-fast);
   z-index: var(--z-modal);
 }
 
 .modal-header {
   padding: var(--space-6);
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--avl-border);
 }
 
 .modal-title {
   margin: 0;
-  font-size: var(--text-2xl);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  font-size: var(--avl-text-xl);
+  line-height: var(--avl-lh-xl);
+  font-weight: var(--font-bold);
+  color: var(--avl-text-strong);
 }
 
 .modal-body {
@@ -291,8 +362,9 @@
 }
 
 .modal-footer {
-  padding: var(--space-6);
-  border-top: 1px solid var(--border-default);
+  padding: 12px 16px;
+  border-top: 1px solid var(--avl-border);
+  background: var(--avl-bg-subtle);
   display: flex;
   gap: var(--space-3);
   justify-content: flex-end;
@@ -304,7 +376,7 @@
 
 .toast-container {
   position: fixed;
-  top: var(--space-4);
+  bottom: var(--space-4);
   right: var(--space-4);
   z-index: var(--z-toast);
   display: flex;
@@ -314,32 +386,23 @@
 }
 
 .toast {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  box-shadow: var(--shadow-xl);
+  background-color: var(--avl-gray-900);
+  color: var(--avl-on-accent);
+  border-radius: var(--avl-radius-lg);
+  padding: 12px 16px;
+  box-shadow: var(--avl-shadow-lg);
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
+  font-size: var(--avl-text-sm);
+  font-weight: var(--font-medium);
   animation: slideInRight var(--transition-base);
 }
 
-.toast-success {
-  border-left: 4px solid var(--color-success-500);
-}
-
-.toast-error {
-  border-left: 4px solid var(--color-error-500);
-}
-
-.toast-warning {
-  border-left: 4px solid var(--color-warning-500);
-}
-
-.toast-info {
-  border-left: 4px solid var(--color-primary-500);
-}
+.toast-success { background-color: var(--avl-gray-900); }
+.toast-error { background-color: var(--avl-red-600); }
+.toast-warning { background-color: var(--avl-amber-700); }
+.toast-info { background-color: var(--avl-accent); }
 
 /* ========================================
    LOADING STATES
@@ -347,12 +410,12 @@
 
 .spinner {
   display: inline-block;
-  width: 1.5rem;
-  height: 1.5rem;
-  border: 3px solid var(--color-gray-200);
-  border-top-color: var(--accent-primary);
-  border-radius: var(--radius-full);
-  animation: spin 0.8s linear infinite;
+  width: 2rem;
+  height: 2rem;
+  border: 4px solid var(--avl-brand-500);
+  border-top-color: transparent;
+  border-radius: var(--avl-radius-full);
+  animation: spin 1s linear infinite;
 }
 
 .spinner-sm {
@@ -368,15 +431,9 @@
 }
 
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-gray-200) 25%,
-    var(--color-gray-100) 50%,
-    var(--color-gray-200) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: var(--radius-md);
+  background: var(--avl-bg-skeleton);
+  border-radius: var(--avl-radius-lg);
+  animation: pulse 2s var(--avl-ease) infinite;
 }
 
 .skeleton-text {
@@ -389,28 +446,611 @@
 }
 
 /* ========================================
-   BADGES
+   BADGES / CHIPS
    ======================================== */
 
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
   font-weight: var(--font-medium);
-  border-radius: var(--radius-md);
-  background-color: var(--color-gray-100);
-  color: var(--text-secondary);
+  border-radius: var(--avl-radius-sm);
+  border: 1px solid var(--avl-border);
+  background-color: var(--avl-bg-muted);
+  color: var(--avl-text-label);
 }
 
 .badge-primary {
-  background-color: var(--color-primary-100);
-  color: var(--color-primary-700);
+  background-color: var(--avl-accent-soft-bg);
+  border-color: var(--avl-accent-soft-border);
+  color: var(--avl-accent-soft-text);
 }
 
 .badge-success {
-  background-color: var(--color-success-500);
-  color: var(--text-inverse);
+  background-color: var(--avl-success-bg);
+  border-color: var(--avl-success-border);
+  color: var(--avl-success-text);
+}
+
+/* ========================================
+   SITE HEADER (AVL GO header recipe, shared by app.html and review.html)
+   One row from 1024 px: logo + title, nav tabs 24 px after, actions right.
+   Below 1024 px: logo + title and actions, then the nav tabs on a second row.
+   ======================================== */
+
+.site-header {
+  box-sizing: border-box;
+  height: var(--site-header-h);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "brand nav actions";
+  align-items: center;
+  column-gap: 24px;
+  padding: 0 var(--app-gutter);
+  background: var(--avl-bg-surface);
+  border-bottom: 1px solid var(--avl-border-header);
+  position: relative;
+  z-index: 40;
+}
+
+/* Centred 1280 px content, for pages that are not full-bleed. */
+.site-header--contained {
+  padding-inline: max(var(--app-gutter), calc((100% - var(--avl-container)) / 2 + var(--app-gutter)));
+}
+
+.site-brand {
+  grid-area: brand;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.site-logo-link {
+  display: inline-flex;
+  flex: none;
+  border-radius: var(--avl-radius-md);
+}
+
+.site-logo {
+  display: block;
+  height: 24px;
+  width: auto;
+}
+
+@media (min-width: 640px) { .site-logo { height: 30px; } }
+@media (min-width: 1024px) { .site-logo { height: 32px; } }
+
+.site-title-sep {
+  flex: none;
+  width: 1px;
+  height: 24px;
+  background: var(--avl-border);
+}
+
+.site-title {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--avl-text-base);
+  line-height: var(--avl-lh-base);
+  font-weight: var(--font-semibold);
+  color: var(--avl-text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+
+a.site-title:hover {
+  color: var(--avl-link);
+}
+
+.site-nav {
+  grid-area: nav;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.site-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.site-tab {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  margin: 0;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--avl-radius-md);
+  background: transparent;
+  color: var(--avl-text-muted);
+  font-family: inherit;
+  font-size: var(--avl-text-sm);
+  line-height: var(--avl-lh-sm);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.site-tab:hover {
+  color: var(--avl-text-label);
+  background: var(--avl-bg-subtle);
+}
+
+.site-tab.is-active,
+.site-tab[aria-current="page"] {
+  color: var(--avl-link);
+  background: var(--avl-accent-soft-bg);
+}
+
+.site-tab[hidden] {
+  display: none;
+}
+
+.site-tab svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* A nav item that opens another page (the review list) sits after a thin divider. */
+.site-tab--page {
+  position: relative;
+  margin-left: 9px;
+}
+
+.site-tab--page::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 7px;
+  bottom: 7px;
+  width: 1px;
+  background: var(--avl-border);
+}
+
+.site-actions {
+  grid-area: actions;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.site-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: var(--avl-radius-md);
+  color: var(--avl-text-muted);
+  font-size: var(--avl-text-sm);
+  line-height: var(--avl-lh-sm);
+  font-weight: var(--font-medium);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.site-link:hover {
+  color: var(--avl-text-strong);
+  background: var(--avl-bg-subtle);
+}
+
+/* "Built on Civic Mapper by [CLE]" credit, AVL GO's "Open-sourced by" slot. */
+.site-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 4px;
+  color: var(--avl-text-muted);
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+  white-space: nowrap;
+}
+
+.site-credit a:not(.cle-lockup) {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.site-credit a:not(.cle-lockup):hover {
+  color: var(--avl-text-body);
+}
+
+.cle-lockup {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  border-radius: var(--avl-radius-sm);
+  transition: opacity var(--transition-fast);
+}
+
+.cle-lockup img {
+  display: block;
+  height: 20px;
+  width: auto;
+}
+
+.cle-lockup:hover {
+  opacity: 0.75;
+}
+
+@media (max-width: 1279px) {
+  .site-credit-text { display: none; }
+}
+
+@media (max-width: 1023px) {
+  .site-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 32px 32px;
+    grid-template-areas:
+      "brand actions"
+      "nav nav";
+    row-gap: 8px;
+    padding-top: 12px;
+    padding-bottom: 8px;
+  }
+
+  .site-nav {
+    margin-inline: -4px;
+  }
+}
+
+@media (max-width: 719px) {
+  .site-link,
+  .site-credit,
+  .site-actions .btn-secondary {
+    display: none;
+  }
+
+  .site-title {
+    font-size: var(--avl-text-sm);
+  }
+
+  .site-brand {
+    gap: 8px;
+  }
+
+  .site-title-sep {
+    height: 20px;
+  }
+
+  .site-nav {
+    gap: 2px;
+  }
+
+  .site-tab {
+    padding: 4px 8px;
+    font-size: var(--avl-text-xs);
+    line-height: var(--avl-lh-xs);
+  }
+
+  .site-tab svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* Small credit line at the foot of a panel column ("Built on Civic Mapper by ..."). */
+.app-credit {
+  margin: 0;
+  padding: 4px 2px 0;
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+  color: var(--avl-text-muted);
+}
+
+.app-credit a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.app-credit a:hover {
+  color: var(--avl-text-body);
+}
+
+/* Logo colour follows the theme (guide §1: invert to white in dark). Artwork that has a separate
+   white file (the CLE lockup) swaps images instead: mark them .only-light / .only-dark. */
+.only-dark {
+  display: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root.theme-auto .site-logo {
+    filter: brightness(0) invert(1);
+  }
+
+  :root.theme-auto .only-light {
+    display: none !important;
+  }
+
+  :root.theme-auto .only-dark {
+    display: block !important;
+  }
+}
+
+/* ========================================
+   MAP CHROME (MapLibre popups + controls). Selectors carry an extra class so they win over
+   maplibre-gl.css, which is injected after these stylesheets.
+   ======================================== */
+
+.maplibregl-popup .maplibregl-popup-content {
+  padding: 12px 16px;
+  background: var(--avl-bg-surface);
+  color: var(--avl-text-body);
+  border: 1px solid var(--avl-border);
+  border-radius: var(--avl-radius-lg);
+  box-shadow: var(--avl-shadow-lg);
+  font-family: var(--avl-font-sans);
+  font-size: var(--avl-text-sm);
+  line-height: var(--avl-lh-sm);
+}
+
+.maplibregl-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--avl-bg-surface);
+}
+
+.maplibregl-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--avl-bg-surface);
+}
+
+.maplibregl-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--avl-bg-surface);
+}
+
+.maplibregl-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--avl-bg-surface);
+}
+
+.maplibregl-popup .maplibregl-popup-close-button {
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: var(--avl-radius-md);
+  color: var(--avl-text-faint);
+  font-size: 18px;
+  line-height: 22px;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.maplibregl-popup .maplibregl-popup-close-button:hover {
+  background: var(--avl-bg-muted);
+  color: var(--avl-text-body);
+}
+
+/* Popup body (parcel + parking popups; markup in main.ts / parking.ts) */
+.gvw-pop {
+  max-width: min(92vw, 460px);
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+  color: var(--avl-text-body);
+}
+
+.gvw-pop-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 28px 8px 0;   /* clear the close button */
+}
+
+.gvw-pop-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--avl-border);
+  border-radius: var(--avl-radius-sm);
+  background: var(--avl-bg-control);
+  color: var(--avl-link);
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+  font-weight: var(--font-medium);
+  text-decoration: none;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.gvw-pop-link:hover {
+  background: var(--avl-accent-soft-bg);
+  color: var(--avl-link-hover);
+}
+
+.gvw-pop-title {
+  margin: 0 28px 4px 0;
+  font-size: var(--avl-text-base);
+  line-height: var(--avl-leading-tight);
+  font-weight: var(--font-bold);
+  color: var(--avl-text-strong);
+  overflow-wrap: anywhere;
+}
+
+.gvw-pop-actions + .gvw-pop-title {
+  margin-right: 0;
+}
+
+.gvw-pop-caption {
+  margin-bottom: 8px;
+  color: var(--avl-text-muted);
+}
+
+/* The amber "Estimated land value" note (guide warning colours). */
+.gvw-pop-note {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--avl-warning-border);
+  border-radius: var(--avl-radius-lg);
+  background: var(--avl-warning-bg);
+  color: var(--avl-warning-text);
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+}
+
+.gvw-pop-note strong {
+  font-weight: var(--font-semibold);
+}
+
+.gvw-pop-est {
+  margin-left: 4px;
+  color: var(--avl-warning-mark);
+  font-size: var(--avl-text-2xs);
+  font-weight: var(--font-semibold);
+  cursor: help;
+  border-bottom: 1px dotted currentColor;
+}
+
+.gvw-pop-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.gvw-pop-under {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.gvw-pop-kicker {
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--avl-tracking-label);
+  text-transform: uppercase;
+  color: var(--avl-text-muted);
+}
+
+.gvw-pop-under-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.gvw-pop-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--avl-accent-soft-border);
+  border-radius: var(--avl-radius-sm);
+  background: var(--avl-accent-soft-bg);
+  color: var(--avl-accent-soft-text);
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+  font-weight: var(--font-medium);
+}
+
+.gvw-pop-chip--neutral {
+  border-color: var(--avl-border);
+  background: var(--avl-bg-muted);
+  color: var(--avl-text-label);
+  font-weight: var(--font-semibold);
+}
+
+.gvw-pop-figure {
+  font-size: var(--avl-text-sm);
+  font-weight: var(--font-bold);
+  color: var(--avl-text-strong);
+}
+
+.gvw-pop-error {
+  margin-top: 4px;
+  color: var(--avl-danger);
+}
+
+.gvw-pop-divider {
+  height: 1px;
+  margin: 8px 0;
+  background: var(--avl-border);
+}
+
+.gvw-pop-section {
+  margin-bottom: 4px;
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--avl-tracking-label);
+  text-transform: uppercase;
+  color: var(--avl-text-muted);
+}
+
+.gvw-pop-scroll {
+  overflow: auto;
+}
+
+.gvw-pop-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+}
+
+.gvw-pop-table td {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--avl-border);
+  vertical-align: baseline;
+}
+
+.gvw-pop-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.gvw-pop-table td + td {
+  padding-left: 12px;
+}
+
+.gvw-pop-label {
+  color: var(--avl-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.gvw-pop-value {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: var(--font-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--avl-text-strong);
+}
+
+.gvw-pop-value--dim {
+  color: var(--avl-text-muted);
+}
+
+/* A value shown in its data-ramp colour (parking.ts passes --ramp-top, the ramp's darkest step). */
+.gvw-pop-value--ramp {
+  color: var(--ramp-top, var(--avl-text-strong));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root.theme-auto .gvw-pop-value--ramp {
+    color: color-mix(in srgb, var(--ramp-top, #ffffff) 50%, #ffffff);
+  }
+}
+
+/* Map controls: AVL icon-button shape. They sit on the (always light) basemap, so they stay light. */
+.maplibregl-map .maplibregl-ctrl-group:not(:empty) {
+  border-radius: var(--avl-radius-lg);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), var(--avl-shadow-sm);
+  overflow: hidden;
 }
 
 /* ========================================
@@ -425,7 +1065,7 @@
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -446,6 +1086,10 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  50% { opacity: 0.5; }
 }
 
 @keyframes shimmer {
@@ -494,4 +1138,3 @@
 .mt-4 { margin-top: var(--space-4); }
 .mb-2 { margin-bottom: var(--space-2); }
 .mb-4 { margin-bottom: var(--space-4); }
-

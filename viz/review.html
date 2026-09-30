@@ -1,65 +1,42 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="theme-auto">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Parcel review - Civic Mapper</title>
-  <link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg">
-  <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="mask-icon" href="favicon.svg" color="#0f172a">
+  <title>Parcel review | AVL GO</title>
+  <meta name="theme-color" content="#0871aa" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/svg+xml" sizes="any" href="/avlgo-favicon.svg">
+  <link rel="icon" href="/avlgo-favicon.ico" sizes="32x32">
+  <link rel="apple-touch-icon" href="/avlgo-apple-touch-icon.png">
+  <link rel="preload" href="/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <script type="module" src="/src/analytics.ts"></script>
   <link rel="stylesheet" href="/src/design-system.css">
   <link rel="stylesheet" href="/src/components.css">
   <style>
+    /* Parcel review feed. Colours, radii and type come from the tokens in design-system.css; the
+       header, buttons and inputs are shared (components.css). */
     :root {
-      --rv-header-h: 56px;
       --rv-side-w: 340px;
-      --rv-card-border: rgba(148, 163, 184, 0.24);
-      --rv-card-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+
+      /* Map-class chips reuse the Underused view's category colours (main.ts UNDER_CATEGORY_RAMPS:
+         lightest step as the border, darkest as the text), so a tag here matches the map. */
+      --cat-vacant-bg: #ffedd5;         --cat-vacant-fg: #9a3412;         --cat-vacant-bd: #fdba74;
+      --cat-underdeveloped-bg: #dbeafe; --cat-underdeveloped-fg: #1e3a8a; --cat-underdeveloped-bd: #93c5fd;
+      --cat-parking-bg: #ccfbf1;        --cat-parking-fg: #115e59;        --cat-parking-bd: #5eead4;
     }
 
     body {
       margin: 0;
-      background: #eef3f8;
-      color: var(--text-primary);
+      background: var(--avl-bg-page);
+      color: var(--avl-text-strong);
     }
-
-    /* ---- Header (mirrors app.html's workspace header) ---- */
-    .rv-header {
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      height: var(--rv-header-h);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 0 18px;
-      background: rgba(255, 255, 255, 0.94);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-    }
-    .rv-header-left, .rv-header-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .rv-logo-block {
-      display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-      flex: none; text-decoration: none;
-    }
-    .rv-logo-block img { height: 26px; display: block; }
-    .rv-back-link { font-size: 0.78rem; font-weight: 600; color: #64748b; white-space: nowrap; line-height: 1; }
-    .rv-logo-block:hover .rv-back-link { color: #0f172a; }
-    .rv-header-link {
-      font-size: 0.9rem; font-weight: 600; color: #334155; text-decoration: none; white-space: nowrap;
-    }
-    .rv-header-link:hover { color: #0f172a; }
-    .rv-cle-lockup { display: inline-flex; align-items: center; margin-left: 6px; }
-    .rv-cle-lockup img { height: 20px; display: block; }
-    .rv-cle-lockup:hover { opacity: 0.8; }
 
     /* ---- Two-column shell: a sticky side column (title, tabs, filters, method) + the feed ---- */
     .rv-shell {
-      max-width: 1240px;
+      max-width: var(--avl-container);
       margin: 0 auto;
-      padding: 22px 18px 56px;
+      padding: 24px var(--app-gutter) 48px;
       display: grid;
       grid-template-columns: var(--rv-side-w) minmax(0, 1fr);
       gap: 24px;
@@ -67,201 +44,258 @@
     }
     .rv-side {
       position: sticky;
-      top: calc(var(--rv-header-h) + 18px);
-      max-height: calc(100vh - var(--rv-header-h) - 36px);
+      top: 16px;
+      max-height: calc(100vh - 32px);
       overflow-x: hidden;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
       padding: 0 4px 2px 0;
       scrollbar-width: thin;
-      scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
     }
     .rv-kicker {
-      font-size: 0.74rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--color-primary-500);
+      font-size: var(--avl-text-xs); line-height: var(--avl-lh-xs); font-weight: var(--font-semibold);
+      letter-spacing: var(--avl-tracking-label); text-transform: uppercase; color: var(--avl-link);
     }
     .rv-title {
-      margin: 2px 0 0; font-size: 2rem; line-height: 1.05; font-weight: 800; color: #0f172a;
-      letter-spacing: -0.015em;
+      margin: 4px 0 0;
+      font-size: var(--avl-text-2xl); line-height: var(--avl-lh-2xl); font-weight: var(--font-bold);
+      color: var(--avl-text-strong);
     }
-    .rv-lede { margin: 6px 0 0; color: #475569; font-size: 0.93rem; line-height: 1.5; }
-    .rv-lede strong { color: #0f172a; }
+    .rv-lede {
+      margin: 6px 0 0; color: var(--avl-text-body);
+      font-size: var(--avl-text-sm); line-height: var(--avl-leading-relaxed);
+    }
+    .rv-lede strong { color: var(--avl-text-strong); font-weight: var(--font-semibold); }
 
-    /* Tabs: the app's pill tabs (dark active pill). */
+    /* Tabs: AVL GO segmented control (muted track, white active segment in brand text). */
     .rv-tabs {
-      display: flex; gap: 4px; padding: 4px; border-radius: 18px;
-      background: rgba(15, 23, 42, 0.05);
+      display: flex; gap: 4px; padding: 4px; border-radius: var(--avl-radius-lg);
+      background: var(--avl-bg-muted);
     }
     .rv-tab {
       flex: 1 1 0; min-width: 0;
-      border: none; background: transparent; color: #475569;
-      font: inherit; font-size: 0.88rem; font-weight: 700; line-height: 1.2;
-      padding: 8px 10px; border-radius: 14px; cursor: pointer; white-space: nowrap;
-      display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-      transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+      border: none; background: transparent; color: var(--avl-text-body);
+      font: inherit; font-size: var(--avl-text-sm); line-height: var(--avl-lh-sm); font-weight: var(--font-medium);
+      padding: 6px 8px; border-radius: var(--avl-radius-md); cursor: pointer; white-space: nowrap;
+      display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+      transition: background-color var(--transition-fast), color var(--transition-fast);
     }
-    .rv-tab:hover:not(.is-active) { background: rgba(15, 23, 42, 0.06); color: #0f172a; }
-    .rv-tab.is-active { background: #0f172a; color: #fff; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18); }
-    .rv-tab:focus-visible { outline: 2px solid var(--color-primary-400); outline-offset: 2px; }
-    .rv-tab-count { font-size: 0.72rem; font-weight: 600; opacity: 0.7; }
+    .rv-tab:hover:not(.is-active) { color: var(--avl-text-strong); }
+    .rv-tab.is-active { background: var(--avl-bg-surface); color: var(--avl-link); box-shadow: var(--avl-shadow-sm); }
+    .rv-tab-count { font-size: var(--avl-text-xs); line-height: var(--avl-lh-xs); font-weight: var(--font-normal); color: var(--avl-text-muted); }
 
     .rv-panel {
-      background: #fff;
-      border: 1px solid var(--rv-card-border);
-      border-radius: 18px;
-      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
-      padding: 14px 16px;
+      background: var(--avl-bg-surface);
+      border: 1px solid var(--avl-border);
+      border-radius: var(--avl-radius-lg);
+      padding: 16px;
     }
 
     /* Filters */
-    .rv-filters { display: grid; gap: 10px; }
-    .rv-field { display: grid; gap: 5px; }
+    .rv-filters { display: grid; gap: 12px; }
+    .rv-field { display: grid; gap: 4px; }
     .rv-field > span {
-      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #64748b;
+      font-size: var(--avl-text-sm); line-height: var(--avl-lh-sm); font-weight: var(--font-medium);
+      color: var(--avl-text-label);
     }
     .rv-input, .rv-select {
       width: 100%;
-      font: inherit; font-size: 0.92rem; font-weight: 600; color: #0f172a;
-      padding: 9px 12px;
-      border: 1px solid rgba(148, 163, 184, 0.34);
-      border-radius: 11px;
-      background-color: #fff;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      font: inherit; font-size: var(--avl-text-sm); line-height: var(--avl-lh-sm); color: var(--avl-text-strong);
+      padding: 8px 12px;
+      border: 1px solid var(--avl-border-strong);
+      border-radius: var(--avl-radius-lg);
+      background-color: var(--avl-bg-control);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
     }
     .rv-input {
       padding-left: 36px;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+      border-color: var(--avl-border);
+      background-image: var(--avl-icon-search);
       background-repeat: no-repeat;
-      background-position: left 12px center;
+      background-position: left 10px center;
+      background-size: 16px 16px;
     }
-    .rv-input::placeholder { color: #94a3b8; font-weight: 500; }
+    .rv-select {
+      appearance: none; -webkit-appearance: none;
+      padding-right: 36px;
+      background-image: var(--avl-icon-chevron);
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 16px 16px;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+    .rv-input::placeholder { color: var(--avl-text-faint); }
     .rv-input:focus, .rv-select:focus {
       outline: none;
-      border-color: var(--color-primary-400);
-      box-shadow: 0 0 0 3px rgba(117, 104, 189, 0.18);
+      border-color: var(--avl-focus);
+      box-shadow: var(--avl-ring);
     }
     .rv-filter-foot {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      font-size: 0.82rem; color: #64748b;
+      font-size: var(--avl-text-xs); line-height: var(--avl-lh-xs); color: var(--avl-text-muted);
     }
-    .rv-filter-foot strong { color: #0f172a; }
+    .rv-filter-foot strong { color: var(--avl-text-strong); font-weight: var(--font-semibold); }
     .rv-linkbtn {
-      border: none; background: none; padding: 0; font: inherit; font-size: 0.82rem; font-weight: 700;
-      color: var(--color-primary-600); cursor: pointer;
+      border: none; background: none; padding: 0; font: inherit; font-size: var(--avl-text-xs); font-weight: var(--font-medium);
+      color: var(--avl-link); cursor: pointer;
     }
-    .rv-linkbtn:hover { text-decoration: underline; }
+    .rv-linkbtn:hover { color: var(--avl-link-hover); text-decoration: underline; }
     .rv-linkbtn[hidden] { display: none; }
 
     /* "How this list is ranked" */
     .rv-explainer summary {
       list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
-      font-weight: 800; font-size: 0.92rem; color: #0f172a;
+      font-weight: var(--font-semibold); font-size: var(--avl-text-sm); color: var(--avl-text-strong);
     }
     .rv-explainer summary::-webkit-details-marker { display: none; }
     .rv-explainer summary::after {
-      content: ""; width: 8px; height: 8px; flex: none; margin-right: 4px;
-      border-right: 2px solid #64748b; border-bottom: 2px solid #64748b;
-      transform: rotate(45deg) translateY(-2px); transition: transform 0.18s ease;
+      content: ""; width: 16px; height: 16px; flex: none;
+      background: var(--avl-icon-chevron) no-repeat center / 16px 16px;
+      transition: transform var(--transition-base);
     }
-    .rv-explainer[open] summary::after { transform: rotate(-135deg) translateY(-2px); }
-    .rv-explainer-body { margin-top: 10px; font-size: 0.86rem; line-height: 1.55; color: #475569; }
+    .rv-explainer[open] summary::after { transform: rotate(180deg); }
+    .rv-explainer-body {
+      margin-top: 12px; font-size: var(--avl-text-sm); line-height: var(--avl-leading-relaxed); color: var(--avl-text-body);
+    }
     .rv-explainer-body p { margin: 0 0 8px; }
-    .rv-explainer-body ul { margin: 6px 0 8px; padding: 0; list-style: none; display: grid; gap: 6px; }
+    .rv-explainer-body ul { margin: 8px 0; padding: 0; list-style: none; display: grid; gap: 8px; }
     .rv-explainer-body li { display: flex; align-items: flex-start; gap: 8px; }
-    .rv-explainer-body li .rv-dot { margin-top: 6px; }
-    .rv-explainer-body li b { color: #0f172a; font-weight: 700; }
-    .rv-explainer-body .rv-li-count { margin-left: auto; font-variant-numeric: tabular-nums; color: #64748b; padding-left: 8px; }
-    .rv-explainer-body .rv-fine { font-size: 0.78rem; color: #64748b; }
-    .rv-dot { width: 8px; height: 8px; border-radius: 999px; flex: none; background: currentColor; }
+    .rv-explainer-body li .rv-dot { margin-top: 7px; }
+    .rv-explainer-body li b { color: var(--avl-text-strong); font-weight: var(--font-semibold); }
+    .rv-explainer-body .rv-li-count { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--avl-text-muted); padding-left: 8px; }
+    .rv-explainer-body .rv-fine { font-size: var(--avl-text-xs); line-height: var(--avl-lh-xs); color: var(--avl-text-muted); }
+    .rv-dot { width: 8px; height: 8px; border-radius: var(--avl-radius-full); flex: none; background: currentColor; }
 
-    /* ---- Feed ---- */
-    .rv-feed { display: grid; gap: 14px; }
+    /* ---- Feed: one bordered list, rows split by 1 px dividers (AVL GO event list) ---- */
+    .rv-feed {
+      display: grid;
+      background: var(--avl-bg-surface);
+      border: 1px solid var(--avl-border);
+      border-radius: var(--avl-radius-lg);
+      overflow: hidden;
+    }
+    .rv-feed:empty { display: none; }
     .rv-card {
       position: relative;
       display: grid;
       grid-template-columns: 112px minmax(0, 1fr);
-      gap: 18px;
-      padding: 18px 20px 16px 18px;
-      background: #fff;
-      border: 1px solid var(--rv-card-border);
-      border-radius: 20px;
-      box-shadow: var(--rv-card-shadow);
-      animation: rv-in 0.28s ease both;
+      gap: 20px;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--avl-border-strong);
+      animation: rv-in var(--avl-dur-slow) ease-out both;
       container: rvcard / inline-size;
     }
+    .rv-card:last-child { border-bottom: 0; }
     @keyframes rv-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-    .rv-card:hover { border-color: rgba(117, 104, 189, 0.4); }
 
     .rv-thumb-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
     .rv-thumb {
       position: relative;
       width: 112px; height: 112px;
-      border-radius: 16px;
+      border-radius: var(--avl-radius-lg);
       background:
-        linear-gradient(rgba(52, 40, 119, 0.05) 1px, transparent 1px) 0 0 / 14px 14px,
-        linear-gradient(90deg, rgba(52, 40, 119, 0.05) 1px, transparent 1px) 0 0 / 14px 14px,
-        #f6f5fb;
-      border: 1px solid rgba(52, 40, 119, 0.08);
+        linear-gradient(color-mix(in srgb, var(--avl-border) 55%, transparent) 1px, transparent 1px) 0 0 / 14px 14px,
+        linear-gradient(90deg, color-mix(in srgb, var(--avl-border) 55%, transparent) 1px, transparent 1px) 0 0 / 14px 14px,
+        var(--avl-bg-subtle);
+      border: 1px solid var(--avl-border);
       display: flex; align-items: center; justify-content: center;
     }
     .rv-thumb svg { width: 100%; height: 100%; display: block; }
     .rv-thumb .rv-shape {
-      fill: rgba(75, 61, 156, 0.22); stroke: #342877; stroke-width: 1.6; stroke-linejoin: round;
+      fill: color-mix(in srgb, var(--avl-link) 16%, transparent);
+      stroke: var(--avl-link); stroke-width: 1.6; stroke-linejoin: round;
     }
     .rv-rank {
       position: absolute; top: -8px; left: -8px;
-      min-width: 32px; height: 32px; padding: 0 8px;
-      border-radius: 999px;
-      background: #342877; color: #fff;
-      font-size: 0.82rem; font-weight: 800; font-variant-numeric: tabular-nums;
+      min-width: 28px; height: 24px; padding: 0 7px;
+      border-radius: var(--avl-radius-full);
+      background: var(--avl-accent); color: var(--avl-on-accent);
+      font-size: var(--avl-text-xs); font-weight: var(--font-bold); font-variant-numeric: tabular-nums;
       display: inline-flex; align-items: center; justify-content: center;
-      box-shadow: 0 6px 14px rgba(52, 40, 119, 0.3);
-      border: 2px solid #fff;
+      border: 2px solid var(--avl-bg-surface);
     }
-    .rv-thumb-cap { font-size: 0.72rem; color: #64748b; font-weight: 600; white-space: nowrap; }
+    .rv-thumb-cap { font-size: var(--avl-text-xs); line-height: var(--avl-lh-xs); color: var(--avl-text-muted); white-space: nowrap; }
 
     .rv-body { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-    .rv-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .rv-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
     .rv-idline { min-width: 0; }
     .rv-pid {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-family: var(--font-mono); font-size: 1.02rem; font-weight: 700; color: #0f172a;
-      letter-spacing: 0.01em; word-break: break-all;
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: var(--avl-text-base); line-height: var(--avl-leading-tight); font-weight: var(--font-bold);
+      color: var(--avl-text-strong); font-variant-numeric: tabular-nums; word-break: break-all;
     }
     .rv-copy {
-      border: none; background: transparent; padding: 3px; border-radius: 6px; cursor: pointer; color: #94a3b8;
-      display: inline-flex;
+      border: none; background: transparent; padding: 4px; border-radius: var(--avl-radius-md); cursor: pointer;
+      color: var(--avl-text-faint); display: inline-flex;
+      transition: color var(--transition-fast), background-color var(--transition-fast);
     }
-    .rv-copy:hover { color: var(--color-primary-600); background: var(--color-primary-50); }
+    .rv-copy:hover { color: var(--avl-link); background: var(--avl-accent-soft-bg); }
     .rv-copy svg { width: 14px; height: 14px; }
-    .rv-copy.is-done { color: #059669; }
-    .rv-class { margin-top: 3px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.88rem; color: #475569; }
-    .rv-class .rv-sep { color: #cbd5e1; }
-    .rv-tag {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px;
-      letter-spacing: 0.02em;
+    .rv-copy.is-done { color: var(--avl-success-text); }
+    .rv-class {
+      margin-top: 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+      font-size: var(--avl-text-sm); line-height: var(--avl-lh-sm); color: var(--avl-text-muted);
     }
-    .rv-tag--Vacant { background: #ffedd5; color: #9a3412; }
-    .rv-tag--Underdeveloped { background: #dbeafe; color: #1e3a8a; }
-    .rv-tag--Parking { background: #ccfbf1; color: #115e59; }
-    .rv-tag--est { background: #f1f5f9; color: #475569; }
+    .rv-class .rv-sep { color: var(--avl-text-faint); }
+
+    /* Chips / tags (guide §6 badge: 12 px, 500, radius 4, 1 px border). Each variant sets
+       --c-bg / --c-fg / --c-bd; dark mode derives all three from --c-fg. */
+    .rv-tag, .rv-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: var(--avl-text-xs); line-height: var(--avl-lh-xs); font-weight: var(--font-medium);
+      padding: 2px 8px; border-radius: var(--avl-radius-sm); white-space: nowrap;
+      background: var(--c-bg, var(--avl-bg-muted));
+      color: var(--c-fg, var(--avl-text-label));
+      border: 1px solid var(--c-bd, var(--avl-border));
+    }
+    .rv-tag--Vacant, .sig-vacant { --c-bg: var(--cat-vacant-bg); --c-fg: var(--cat-vacant-fg); --c-bd: var(--cat-vacant-bd); }
+    .rv-tag--Underdeveloped, .sig-underdeveloped { --c-bg: var(--cat-underdeveloped-bg); --c-fg: var(--cat-underdeveloped-fg); --c-bd: var(--cat-underdeveloped-bd); }
+    .rv-tag--Parking, .sig-parking { --c-bg: var(--cat-parking-bg); --c-fg: var(--cat-parking-fg); --c-bd: var(--cat-parking-bd); }
+    .rv-tag--est, .sig-estimate_off, .sig-estimate_floor { --c-bg: var(--avl-gray-100); --c-fg: var(--avl-gray-700); --c-bd: var(--avl-gray-200); }
+    .sig-zero_land { --c-bg: var(--avl-red-50); --c-fg: var(--avl-red-700); --c-bd: var(--avl-red-200); }
+    .sig-sliver { --c-bg: var(--avl-rose-50); --c-fg: var(--avl-rose-700); --c-bd: var(--avl-rose-200); }
+    .sig-land_psf_high { --c-bg: var(--avl-violet-50); --c-fg: var(--avl-violet-700); --c-bd: var(--avl-violet-200); }
+    .sig-land_psf_low { --c-bg: var(--avl-indigo-50); --c-fg: var(--avl-indigo-700); --c-bd: var(--avl-indigo-200); }
+    .sig-label_vacant_built, .sig-label_parking_built, .sig-label_built_empty,
+    .sig-check_data { --c-bg: var(--avl-amber-50); --c-fg: var(--avl-amber-800); --c-bd: var(--avl-amber-200); }
+    .rv-chip { margin-top: 1px; }
+    .rv-chip .rv-dot { width: 6px; height: 6px; }
+    .rv-explainer-body .rv-dot { color: var(--c-fg, var(--avl-text-muted)); }
+
+    /* Dark: the light border hue (a 200 step / the ramp's lightest colour) carries the chip. */
+    @media (prefers-color-scheme: dark) {
+      :root.theme-auto .rv-tag,
+      :root.theme-auto .rv-chip {
+        background: color-mix(in srgb, var(--c-bd, var(--avl-gray-400)) 14%, transparent);
+        color: var(--c-bd, var(--avl-gray-300));
+        border-color: color-mix(in srgb, var(--c-bd, var(--avl-gray-400)) 40%, transparent);
+      }
+      :root.theme-auto .rv-explainer-body .rv-dot {
+        color: var(--c-bd, var(--avl-text-muted));
+      }
+    }
 
     /* Score (issues) / land value (opportunities) in the card's top-right. */
     .rv-metric { flex: none; text-align: right; }
-    .rv-metric-val { font-size: 1.35rem; font-weight: 800; color: #0f172a; line-height: 1; font-variant-numeric: tabular-nums; }
-    .rv-metric-lbl { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: #64748b; margin-top: 4px; }
-    .rv-meter { width: 88px; height: 5px; border-radius: 999px; background: #eef2f7; margin: 7px 0 0 auto; overflow: hidden; }
-    .rv-meter > i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f59e0b, #dc2626); }
+    .rv-metric-val {
+      font-size: var(--avl-text-2xl); line-height: 1; font-weight: var(--font-bold);
+      color: var(--avl-text-strong); font-variant-numeric: tabular-nums;
+    }
+    .rv-metric-lbl {
+      font-size: var(--avl-text-xs); line-height: var(--avl-lh-xs); font-weight: var(--font-semibold);
+      letter-spacing: var(--avl-tracking-label); text-transform: uppercase; color: var(--avl-text-muted); margin-top: 4px;
+    }
+    .rv-meter { width: 88px; height: 6px; border-radius: var(--avl-radius-full); background: var(--avl-bg-muted); margin: 8px 0 0 auto; overflow: hidden; }
+    .rv-meter > i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--avl-amber-500), var(--avl-red-600)); }
 
-    /* Reasons */
     /* Reasons: chip column + sentence column, aligned within a card. */
     .rv-reasons {
-      display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px 10px; align-items: start;
+      display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 12px; align-items: start;
       margin: 0; padding: 0; list-style: none;
-      font-size: 0.9rem; line-height: 1.45; color: #1e293b;
+      font-size: var(--avl-text-sm); line-height: var(--avl-lh-sm); color: var(--avl-text-body);
     }
     .rv-reason { display: contents; }
     .rv-reason .rv-chip { justify-self: start; }
@@ -270,110 +304,104 @@
       .rv-reasons { grid-template-columns: minmax(0, 1fr); gap: 4px; }
       .rv-reason > span:last-child { margin-bottom: 6px; }
     }
-    .rv-chip {
-      flex: none; display: inline-flex; align-items: center; gap: 6px;
-      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.01em;
-      padding: 3px 9px; border-radius: 999px; white-space: nowrap; margin-top: 1px;
-    }
-    .rv-chip .rv-dot { width: 6px; height: 6px; }
-    .sig-zero_land { --c-bg: #fee2e2; --c-fg: #b91c1c; }
-    .sig-sliver { --c-bg: #ffe4e6; --c-fg: #be123c; }
-    .sig-land_psf_high { --c-bg: #ede9fe; --c-fg: #5b21b6; }
-    .sig-land_psf_low { --c-bg: #e0e7ff; --c-fg: #3730a3; }
-    .sig-label_vacant_built, .sig-label_parking_built, .sig-label_built_empty { --c-bg: #fef3c7; --c-fg: #92400e; }
-    .sig-estimate_off, .sig-estimate_floor { --c-bg: #e2e8f0; --c-fg: #334155; }
-    .sig-vacant { --c-bg: #ffedd5; --c-fg: #9a3412; }
-    .sig-underdeveloped { --c-bg: #dbeafe; --c-fg: #1e3a8a; }
-    .sig-parking { --c-bg: #ccfbf1; --c-fg: #115e59; }
-    .sig-check_data { --c-bg: #fef3c7; --c-fg: #92400e; }
-    .rv-chip { background: var(--c-bg, #f1f5f9); color: var(--c-fg, #334155); }
-    .rv-explainer-body .rv-dot { color: var(--c-fg, #64748b); }
 
-    /* Key numbers */
-    /* Wrapping row: 5 across on a wide card, 2-2-1 on a phone, and the last row always fills. */
+    /* Key numbers: 5 across on a wide card, 2-2-1 on a phone, and the last row always fills. */
     .rv-stats {
       display: flex;
       flex-wrap: wrap;
       gap: 1px;
       margin: 0;
-      border-radius: 14px;
+      border-radius: var(--avl-radius-lg);
       overflow: hidden;
-      background: rgba(148, 163, 184, 0.22);
-      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: var(--avl-border);
+      border: 1px solid var(--avl-border);
     }
-    .rv-stat { flex: 1 1 118px; background: #f8fafc; padding: 9px 11px; min-width: 0; }
+    .rv-stat { flex: 1 1 118px; background: var(--avl-bg-subtle); padding: 8px 12px; min-width: 0; }
     .rv-stat dt {
-      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #64748b;
+      font-size: var(--avl-text-2xs); line-height: var(--avl-lh-2xs); font-weight: var(--font-semibold);
+      letter-spacing: var(--avl-tracking-label); text-transform: uppercase; color: var(--avl-text-muted);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .rv-stat dd {
-      margin: 3px 0 0; font-size: 1rem; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums;
+      margin: 2px 0 0; font-size: var(--avl-text-base); line-height: var(--avl-lh-base); font-weight: var(--font-bold);
+      color: var(--avl-text-strong); font-variant-numeric: tabular-nums;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .rv-stat small {
-      display: block; margin-top: 1px; font-size: 0.74rem; font-weight: 600; color: #64748b;
+      display: block; font-size: var(--avl-text-xs); line-height: var(--avl-lh-xs); color: var(--avl-text-muted);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .rv-stat--flag dd { color: #b91c1c; }
+    .rv-stat--flag dd { color: var(--avl-danger); }
     .rv-ratio {
-      display: inline-block; margin-left: 4px; font-size: 0.7rem; font-weight: 800; padding: 0 6px;
-      border-radius: 999px; vertical-align: 2px; background: #f1f5f9; color: #475569;
+      display: inline-block; margin-left: 4px; padding: 0 6px; vertical-align: 2px;
+      font-size: var(--avl-text-2xs); line-height: var(--avl-lh-2xs); font-weight: var(--font-semibold);
+      border-radius: var(--avl-radius-sm); background: var(--avl-bg-muted); color: var(--avl-text-label);
     }
-    .rv-ratio--hi { background: #ede9fe; color: #5b21b6; }
-    .rv-ratio--lo { background: #e0e7ff; color: #3730a3; }
+    .rv-ratio--hi { background: var(--avl-violet-50); color: var(--avl-violet-700); }
+    .rv-ratio--lo { background: var(--avl-indigo-50); color: var(--avl-indigo-700); }
+    @media (prefers-color-scheme: dark) {
+      :root.theme-auto .rv-ratio--hi { background: rgb(112 8 231 / 0.25); color: var(--avl-violet-200); }
+      :root.theme-auto .rv-ratio--lo { background: rgb(67 45 215 / 0.3); color: var(--avl-indigo-200); }
+    }
 
+    /* Per-parcel note: an AVL GO callout. */
     .rv-note {
       display: flex; gap: 8px; align-items: flex-start;
-      font-size: 0.84rem; line-height: 1.5; color: #475569;
-      background: var(--color-primary-50); border: 1px solid rgba(117, 104, 189, 0.16);
-      border-radius: 12px; padding: 8px 11px;
+      font-size: var(--avl-text-sm); line-height: var(--avl-lh-sm); color: var(--avl-accent-soft-text);
+      background: var(--avl-accent-soft-bg); border: 1px solid var(--avl-callout-border);
+      border-radius: var(--avl-radius-lg); padding: 8px 12px;
     }
-    .rv-note svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--color-primary-500); }
+    .rv-note svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--avl-link); }
 
     .rv-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-    .rv-actions .btn { text-decoration: none; font-weight: 700; border-radius: 10px; padding: 6px 12px; font-size: 0.8rem; }
-    .rv-actions .btn svg { width: 14px; height: 14px; }
-    .rv-actions .btn-ghost { background: #fff; }
+    .rv-actions .btn { text-decoration: none; }
 
-    .rv-more-wrap { display: flex; justify-content: center; padding: 18px 0 4px; }
+    .rv-more-wrap { display: flex; justify-content: center; padding: 16px 0 4px; }
     .rv-more-wrap[hidden] { display: none; }
     .rv-sentinel { height: 1px; }
 
-    /* Empty / error / loading */
+    /* Empty / error / loading (guide §6 empty state, boxed variant) */
     .rv-empty {
-      text-align: center; padding: 48px 24px; background: #fff; border-radius: 20px;
-      border: 1px dashed rgba(148, 163, 184, 0.5); color: #475569;
+      text-align: center; padding: 48px 24px; background: var(--avl-bg-surface);
+      border: 1px solid var(--avl-border); border-radius: var(--avl-radius-xl); color: var(--avl-text-muted);
     }
-    .rv-empty h2 { margin: 0 0 6px; font-size: 1.2rem; color: #0f172a; }
-    .rv-empty p { margin: 0 auto 16px; max-width: 46ch; line-height: 1.5; font-size: 0.93rem; }
+    .rv-feed .rv-empty { border: 0; border-radius: 0; }
+    .rv-empty h2 {
+      margin: 0 0 8px; font-size: var(--avl-text-lg); line-height: var(--avl-lh-lg); font-weight: var(--font-semibold);
+      color: var(--avl-text-label);
+    }
+    .rv-empty p { margin: 0 auto 24px; max-width: 28rem; font-size: var(--avl-text-sm); line-height: var(--avl-lh-sm); }
     .rv-empty[hidden] { display: none; }
     .rv-empty .btn { text-decoration: none; }
     body.rv-no-feed .rv-tabs, body.rv-no-feed .rv-filters { display: none; }
     .rv-skel {
-      height: 196px; border-radius: 20px; border: 1px solid var(--rv-card-border);
-      background: linear-gradient(100deg, #fff 30%, #f3f5f9 50%, #fff 70%) 0 0 / 300% 100%;
-      animation: rv-shimmer 1.3s linear infinite;
+      height: 164px; margin: 20px 24px; border-radius: var(--avl-radius-lg);
+      background: var(--avl-bg-skeleton);
+      animation: pulse 2s var(--avl-ease) infinite;
     }
-    @keyframes rv-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 
     @media (prefers-reduced-motion: reduce) {
       .rv-card, .rv-skel { animation: none; }
     }
 
     @media (max-width: 900px) {
-      .rv-shell { grid-template-columns: 1fr; padding: 16px 12px 40px; gap: 16px; }
-      .rv-side { position: static; max-height: none; overflow: visible; }
-      .rv-title { font-size: 1.7rem; }
+      .rv-shell { grid-template-columns: 1fr; padding-top: 16px; padding-bottom: 40px; gap: 16px; }
+      .rv-side { position: static; max-height: none; overflow: visible; padding: 0; }
+      .rv-title { font-size: var(--avl-text-lg); line-height: var(--avl-lh-lg); }
+    }
+
+    /* Phones: the list runs edge to edge, as AVL GO's feed does. */
+    @media (max-width: 639px) {
+      .rv-feed { margin-inline: calc(-1 * var(--app-gutter)); border-radius: 0; border-left: 0; border-right: 0; }
     }
 
     @media (max-width: 720px) {
-      .rv-header { padding: 0 12px; }
-      .rv-header-right .rv-hide-sm { display: none; }
-      .rv-card { grid-template-columns: 76px minmax(0, 1fr); gap: 12px; padding: 14px 14px 14px 12px; }
-      .rv-thumb { width: 76px; height: 76px; border-radius: 12px; }
-      .rv-rank { min-width: 28px; height: 28px; font-size: 0.76rem; }
+      .rv-card { grid-template-columns: 76px minmax(0, 1fr); gap: 12px; padding: 16px 12px; }
+      .rv-thumb { width: 76px; height: 76px; }
+      .rv-rank { min-width: 24px; height: 22px; padding: 0 6px; }
       .rv-head { flex-direction: column; gap: 8px; }
       .rv-metric { text-align: left; display: flex; align-items: baseline; gap: 8px; }
+      .rv-metric-val { font-size: var(--avl-text-xl); }
       .rv-metric-lbl { margin: 0; }
       .rv-meter { display: none; }
       .rv-reasons, .rv-stats, .rv-note, .rv-actions { grid-column: 1 / -1; }
@@ -382,24 +410,39 @@
       .rv-card .rv-head { grid-column: 2; grid-row: 1; }
       .rv-reasons { grid-template-columns: minmax(0, 1fr); gap: 4px; }
       .rv-reason > span:last-child { margin-bottom: 6px; }
-      .rv-tab { font-size: 0.82rem; padding: 8px 8px; }
+      .rv-tab { font-size: var(--avl-text-xs); padding: 6px; }
+      .rv-skel { margin: 16px 12px; }
     }
   </style>
 </head>
 <body>
-  <header class="rv-header">
-    <div class="rv-header-left">
-      <a id="backToMap" href="/app.html" class="rv-logo-block" aria-label="Back to the map">
-        <img src="/logo.svg" alt="Civic Mapper">
-        <span class="rv-back-link">&larr; Back to the map</span>
+  <header class="site-header site-header--contained">
+    <div class="site-brand">
+      <a class="site-logo-link" href="https://avlgo.com/" aria-label="AVL GO home">
+        <img class="site-logo" src="/avlgo-logo.svg" alt="AVL GO" width="114" height="32">
       </a>
+      <span class="site-title-sep" aria-hidden="true"></span>
+      <a id="backToMap" class="site-title" href="/app.html?city=asheville">Asheville Land Map</a>
     </div>
-    <div class="rv-header-right">
-      <a href="/cities.html" class="rv-header-link">All cities</a>
-      <a href="https://github.com/Center-for-Land-Economics/civicmapper" target="_blank" rel="noopener" class="rv-header-link rv-hide-sm" title="Civic Mapper is open source">GitHub</a>
-      <a href="https://landeconomics.org" target="_blank" rel="noopener" class="rv-cle-lockup rv-hide-sm" aria-label="Center for Land Economics">
-        <img src="/cle-logo-2color.svg" alt="Center for Land Economics">
+    <!-- Value / Underused / Parking open the map on that view (review.ts sets the city on each). -->
+    <nav class="site-nav" aria-label="Map views">
+      <a class="site-tab" data-app-view="land" href="/app.html?city=asheville">Value</a>
+      <a class="site-tab" data-app-view="underutilized" href="/app.html?city=asheville&amp;view=underutilized">Underused</a>
+      <a class="site-tab" data-app-view="parking" href="/app.html?city=asheville&amp;view=parking">Parking</a>
+      <a class="site-tab site-tab--page is-active" aria-current="page" href="">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>
+        Review list
       </a>
+    </nav>
+    <div class="site-actions">
+      <span class="site-credit">
+        <span class="site-credit-text">Built on <a href="https://github.com/Center-for-Land-Economics/civicmapper" target="_blank" rel="noopener">Civic Mapper</a> by</span>
+        <a href="https://landeconomics.org" target="_blank" rel="noopener" class="cle-lockup" aria-label="Center for Land Economics">
+          <img class="only-light" src="/cle-logo-2color.svg" alt="Center for Land Economics" width="119" height="20">
+          <img class="only-dark" src="/cle-logo-white.svg" alt="Center for Land Economics" width="119" height="20">
+        </a>
+      </span>
+      <a href="https://github.com/Center-for-Land-Economics/civicmapper" target="_blank" rel="noopener" class="site-link" title="Civic Mapper is open source">GitHub</a>
     </div>
   </header>
 

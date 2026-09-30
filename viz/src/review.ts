@@ -8,7 +8,9 @@
  * Cards render in batches as you scroll, so a 300-item list stays fast.
  */
 import { CITIES, formatCityLabel } from './cities';
-import { LOCAL_REVIEW_PATH, REVIEW_DATASET_URL, SELECTED_CITY, resolveLocalFirst } from './config';
+import {
+  LOCAL_REVIEW_PATH, PARKING_ENABLED, REVIEW_DATASET_URL, SELECTED_CITY, UNDERUTILIZED_ENABLED, resolveLocalFirst,
+} from './config';
 
 type TabKey = 'issues' | 'opportunities';
 
@@ -456,8 +458,15 @@ async function init(): Promise<void> {
   $('cityLabel').textContent = cityLabel;
   // On a phone the method note would push the first card a screen down: start it collapsed.
   if (window.matchMedia('(max-width: 900px)').matches) $<HTMLDetailsElement>('explainer').open = false;
-  document.title = `Parcel review · ${cityLabel} - Civic Mapper`;
+  document.title = `Parcel review · ${cityLabel} | AVL GO`;
   $<HTMLAnchorElement>('backToMap').href = appUrl;
+  // Header nav: Value / Underused / Parking open the map on that view, for this city.
+  const viewOn: Record<string, boolean> = { land: true, underutilized: UNDERUTILIZED_ENABLED, parking: PARKING_ENABLED };
+  for (const a of document.querySelectorAll<HTMLAnchorElement>('a[data-app-view]')) {
+    const view = a.dataset.appView ?? 'land';
+    a.href = view === 'land' ? appUrl : `${appUrl}&view=${encodeURIComponent(view)}`;
+    a.hidden = !viewOn[view];
+  }
 
   const city = CITIES[cityKey];
   cur = city?.currencySymbol ?? '$';

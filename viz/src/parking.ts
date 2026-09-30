@@ -793,42 +793,42 @@ async function runParkingWorkspace() {
       const estValue = fmtCurrency((hasEff ? p.effective_surface_land_value : p.estimated_parking_land_value) ?? 0);
 
       const exemptBadge = isExempt
-        ? `<div style="display:inline-block; background:#eee; color:#555; border-radius:3px; padding:1px 6px; font-size:11px; font-weight:600; margin-bottom:6px;">EXEMPT LAND</div><br>`
+        ? `<div class="gvw-pop-badges"><span class="gvw-pop-chip gvw-pop-chip--neutral">EXEMPT LAND</span></div>`
         : '';
 
       // Caption: "high confidence · OpenStreetMap tag"
       const caption = ptype
-        ? `<div style="color:#888; font-size:11px; margin-bottom:6px;">${p.confidence ?? ''} confidence · ${SOURCE_LABEL[p.classification_source as string] ?? p.classification_source ?? ''}</div>`
+        ? `<div class="gvw-pop-caption">${p.confidence ?? ''} confidence · ${SOURCE_LABEL[p.classification_source as string] ?? p.classification_source ?? ''}</div>`
         : '';
 
       // For structures/gas the surface land is developed — say so instead of "$0".
       const valueRow = (ptype === 'structure' || ptype === 'excluded')
-        ? `<tr><td style="color:#666; padding: 2px 8px 2px 0;">Surface land value</td>
-             <td style="text-align:right; font-weight:600; color:#888;">none (developed)</td></tr>`
-        : `<tr><td style="color:#666; padding: 2px 8px 2px 0;">${hasEff ? 'Surface land value' : 'Est. land value'}</td>
-             <td style="text-align:right; font-weight:600; color:${isExempt ? '#888' : '#BD0026'};">${estValue}</td></tr>`;
+        ? `<tr><td class="gvw-pop-label">Surface land value</td>
+             <td class="gvw-pop-value gvw-pop-value--dim">none (developed)</td></tr>`
+        : `<tr><td class="gvw-pop-label">${hasEff ? 'Surface land value' : 'Est. land value'}</td>
+             <td class="gvw-pop-value ${isExempt ? 'gvw-pop-value--dim' : 'gvw-pop-value--ramp'}" style="--ramp-top:${RAMP[RAMP.length - 1]};">${estValue}</td></tr>`;
 
       new maplibregl.Popup({ maxWidth: '320px', closeButton: true })
         .setLngLat(e.lngLat)
         .setHTML(`
-          <div style="font-family: system-ui, sans-serif; font-size: 13px; line-height: 1.5;">
-            <div style="font-weight: 600; margin-bottom: 2px; font-size: 14px;">
+          <div class="gvw-pop">
+            <div class="gvw-pop-title">
               ${title}
             </div>
             ${caption}
             ${exemptBadge}
-            <table style="border-collapse: collapse; width: 100%;">
+            <table class="gvw-pop-table">
               <tr>
-                <td style="color:#666; padding: 2px 8px 2px 0;">Parcel category</td>
-                <td style="text-align:right; font-weight:500;">${cat}</td>
+                <td class="gvw-pop-label">Parcel category</td>
+                <td class="gvw-pop-value">${cat}</td>
               </tr>
               <tr>
-                <td style="color:#666; padding: 2px 8px 2px 0;">Area</td>
-                <td style="text-align:right; font-weight:500;">${sqft} ${AREA_UNIT} (${areaBig} ${areaBigUnit})</td>
+                <td class="gvw-pop-label">Area</td>
+                <td class="gvw-pop-value">${sqft} ${AREA_UNIT} (${areaBig} ${areaBigUnit})</td>
               </tr>
               <tr>
-                <td style="color:#666; padding: 2px 8px 2px 0;">Land value / ${AREA_UNIT}</td>
-                <td style="text-align:right; font-weight:500;">${fmtPpsf(ppsf)}</td>
+                <td class="gvw-pop-label">Land value / ${AREA_UNIT}</td>
+                <td class="gvw-pop-value">${fmtPpsf(ppsf)}</td>
               </tr>
               ${valueRow}
             </table>

@@ -5,15 +5,19 @@
   "outputDirectory": "dist",
   "redirects": [
     { "source": "/", "destination": "/app.html?city=asheville", "permanent": false },
-    { "source": "/login", "destination": "/cities.html", "permanent": true },
-    { "source": "/login.html", "destination": "/cities.html", "permanent": true }
+    { "source": "/index.html", "destination": "/app.html?city=asheville", "permanent": false },
+    { "source": "/cities", "destination": "/app.html?city=asheville", "permanent": false },
+    { "source": "/cities.html", "destination": "/app.html?city=asheville", "permanent": false },
+    { "source": "/contribute", "destination": "/app.html?city=asheville", "permanent": false },
+    { "source": "/contribute.html", "destination": "/app.html?city=asheville", "permanent": false },
+    { "source": "/login", "destination": "/app.html?city=asheville", "permanent": true },
+    { "source": "/login.html", "destination": "/app.html?city=asheville", "permanent": true }
   ],
   "rewrites": [
     {
       "source": "/api/data/:path*",
       "destination": "https://addfrq9d2diumsge.public.blob.vercel-storage.com/:path*"
     },
-    { "source": "/cities", "destination": "/cities.html" },
     { "source": "/app", "destination": "/app.html" },
     { "source": "/parking", "destination": "/parking.html" },
     { "source": "/review", "destination": "/review.html" },

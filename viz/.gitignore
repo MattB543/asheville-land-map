@@ -15,5 +15,7 @@ data/jurisidictions/data
 public/*.parquet
 public/parking/
 public/*-review.json
+public/*-parcels-metadata.json
+public/*-land-totals.json
 .vercel
 .env*.local
