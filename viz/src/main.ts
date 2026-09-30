@@ -3550,10 +3550,10 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
     if (!keysByLabel.has(label)) keysByLabel.set(label, k);
   }
 
-  const rowHtml = (label: string, printable: string) => `
+  const rowHtml = (label: string, printable: string, note = '') => `
       <tr>
         <td style="padding:2px 6px; overflow-wrap:anywhere;">
-          <code style="white-space:normal;">${label}</code>
+          <code style="white-space:normal;">${label}</code>${note}
         </td>
         <td style="padding:2px 6px; text-align:right; white-space:nowrap;">
           ${printable}
@@ -3577,6 +3577,23 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
   const landPpsf = numFromKeys(['land_value_per_sqft', 'REALLANDVA_per_sqft']);
   const landSize = (landVal != null && landPpsf != null && landPpsf > 0) ? landVal / landPpsf : null;
 
+  // Condo lots whose assessor records $0 land get an ESTIMATED land value from the ETL
+  // (condo_land_imputed = 1; impute_condo_land in data/parcel_calculations.py). Say so up front
+  // and on each row the estimate feeds, not just in a "1 = yes" row further down.
+  const landEstimated = Number(props.condo_land_imputed) === 1;
+  const ESTIMATE_NOTE = 'The assessor records $0 land for this condominium lot, so its land value is '
+    + 'estimated from similar nearby parcels. Treat the land/improvement split as approximate.';
+  const ESTIMATED_KEYS = new Set([...LAND_VALUE_KEYS, 'land_value_per_sqft', 'REALLANDVA_per_sqft',
+    'improvement_value', 'REALIMPROV', 'improvement_value_per_sqft', 'REALIMPROV_per_sqft']);
+  const estimateMark = `<span title="${ESTIMATE_NOTE}" style="margin-left:4px; color:#b45309; `
+    + `font-size:11px; font-weight:600; cursor:help; border-bottom:1px dotted currentColor;">estimated</span>`;
+  const estimateBanner = landEstimated
+    ? `<div role="note" style="margin:0 0 6px; padding:6px 8px; border-radius:6px; background:#fff7e6;
+          border:1px solid #f5c26b; color:#7a4b00; font-size:12px;">
+        <strong>Estimated land value.</strong> ${ESTIMATE_NOTE}
+       </div>`
+    : '';
+
   // Combined-value cities have no land/building split, so the improvement/ratio/share fields are
   // structurally absent — hide them instead of rendering a column of meaningless "—" rows.
   const HIDE_FOR_COMBINED = new Set(['REALIMPROV', 'REALIMPROV_per_sqft', 'improvement_value_per_sqft',
@@ -3589,7 +3606,7 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
     // region name so the popup shows "West Hartford", not "0". No-op for non-group fields.
     const decoded = jurisdiction.nameForId(k, v);
     const printable = decoded ?? ((typeof v === 'number') ? fmt(v) : (v ?? '—'));
-    let html = rowHtml(label, printable);
+    let html = rowHtml(label, printable, landEstimated && ESTIMATED_KEYS.has(k) ? estimateMark : '');
     if (LAND_VALUE_KEYS.includes(k) && landSize != null)
       html += rowHtml('Land Size', `${fmt(Math.round(landSize))} sq ft`);
     return html;
@@ -3638,6 +3655,7 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
     <div class="gvw-pop" style="max-width:min(92vw, 460px); font-size:12.5px; line-height:1.35;">
       ${linkButton}
       ${title ? `<div style="font-weight:600;margin-bottom:4px; overflow-wrap:anywhere;">${title}</div>` : ''}
+      ${estimateBanner}
       ${underSummary}
       ${errRow}
       <div style="height:1px;background:#eee;margin:6px 0"></div>
