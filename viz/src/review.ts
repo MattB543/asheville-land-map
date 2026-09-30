@@ -514,7 +514,10 @@ async function init(): Promise<void> {
   if (doc.units?.currency) cur = doc.units.currency;
   if (doc.units?.area) metric = doc.units.area === 'm2';
   $('count-issues').textContent = `top ${doc.issues.items.length} of ${doc.issues.flagged.toLocaleString('en-US')} flagged`;
-  $('count-opportunities').textContent = `top ${doc.opportunities.items.length} by land value`;
+  $('count-opportunities').textContent = doc.opportunities.top_by_land != null
+    && doc.opportunities.top_by_land < doc.opportunities.items.length
+    ? `${doc.opportunities.items.length} parcels, largest land first`
+    : `top ${doc.opportunities.items.length} by land value`;
   const gen = new Date(doc.generated);
   const genTxt = Number.isNaN(gen.getTime()) ? doc.generated
     : gen.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
