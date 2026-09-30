@@ -46,6 +46,7 @@ export default defineConfig(({ mode }) => {
           app: resolve(__dirname, 'app.html'),
           cities: resolve(__dirname, 'cities.html'),
           parking: resolve(__dirname, 'parking.html'),
+          review: resolve(__dirname, 'review.html'),
           contribute: resolve(__dirname, 'contribute.html')
         }
       }

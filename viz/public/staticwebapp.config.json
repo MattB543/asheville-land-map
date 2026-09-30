@@ -58,6 +58,14 @@
     {
       "route": "/parking.html",
       "serve": "/parking.html"
+    },
+    {
+      "route": "/review",
+      "serve": "/review.html"
+    },
+    {
+      "route": "/review.html",
+      "serve": "/review.html"
     }
   ],
   "globalHeaders": {
@@ -83,7 +91,9 @@
       "/app",
       "/app.html",
       "/parking",
-      "/parking.html"
+      "/parking.html",
+      "/review",
+      "/review.html"
     ]
   }
 }
