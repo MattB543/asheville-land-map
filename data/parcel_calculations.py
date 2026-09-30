@@ -100,40 +100,81 @@ def impute_condo_land(
     group_col: str | None = None,
     k: int = 15,
     cap: float = 0.70,
+    size_band: float | None = None,
+    min_share: float | None = None,
+    area_share=None,
     metric_crs=None,
 ) -> pd.DataFrame:
     """Estimate land for condominium lots whose assessor never split land from the units.
 
     Skill §6d / run_boston.py rule: estimate = lot area x median land $/sqft of the `k` nearest
     `donor` parcels (restricted to the same `group_col` value when given, e.g. municipality),
-    capped at `cap` x the lot's total value and rounded to whole dollars. Returns a DataFrame on
-    gdf.index with `est_psf` (NaN off `eligible`), `new_land` (the capped estimate) and
-    `cap_binding`. Applying it is the caller's call (normally only where new_land exceeds the
-    assessor's land); callers must keep the assessor figure alongside and flag the estimate.
+    capped at `cap` x the lot's total value and rounded to whole dollars.
+
+    Options, all off by default (the plain rule above):
+    - size_band: use the k nearest donors whose area is within this factor of the lot's (the k
+      most similar-sized donors if fewer qualify). Land $/sqft falls steeply with lot size, so a
+      100-acre condo development should not borrow quarter-acre house lots' rates.
+    - min_share: a floor of min_share x the lot's total value under the size-banded estimate,
+      for large sites whose similar-sized neighbours are cheap tracts. The floor never lifts the
+      estimate above the plain (any-size) nearest-neighbour one.
+    - area_share: per-row fraction of the lot the estimate is for (e.g. a development's taxable
+      accounts' value share when it also holds exempt units); default 1.
+
+    Returns a DataFrame on gdf.index with `est_psf` (the donors' median $/sqft; NaN off
+    `eligible`), `new_land` (the final estimate), `cap_binding` and `floor_binding`. Applying it
+    is the caller's call (normally only where new_land exceeds the assessor's land); callers must
+    keep the assessor figure alongside and flag the estimate.
     """
     from scipy.spatial import cKDTree
 
     pts = gdf.to_crs(metric_crs or gdf.estimate_utm_crs()).geometry.representative_point()
     xy = np.column_stack([pts.x.to_numpy(), pts.y.to_numpy()])
-    land = pd.to_numeric(gdf[land_col], errors="coerce")
-    area = pd.to_numeric(gdf[area_col], errors="coerce")
-    psf = (land / area.where(area > 0)).to_numpy(float)
+    land = pd.to_numeric(gdf[land_col], errors="coerce").to_numpy(float)
+    area = pd.to_numeric(gdf[area_col], errors="coerce").to_numpy(float)
+    area = np.where(area > 0, area, np.nan)
+    psf = land / area
     eligible = np.asarray(eligible, dtype=bool)
     donor = np.asarray(donor, dtype=bool) & np.isfinite(psf)
-    est_psf = np.full(len(gdf), np.nan)
-    for grp in ([None] if group_col is None else pd.unique(gdf[group_col])):
-        in_g = np.ones(len(gdf), bool) if grp is None else (gdf[group_col] == grp).to_numpy()
-        d, t = donor & in_g, eligible & in_g
-        if not t.any() or not d.any():
+    if group_col is None:
+        groups = [np.ones(len(gdf), bool)]
+    else:
+        # A missing group must not mean "no restriction": its lots would borrow every group's donors.
+        g = gdf[group_col]
+        if g[eligible | donor].isna().any():
+            raise ValueError(f"{group_col!r} is missing on eligible or donor rows")
+        groups = [(g == v).to_numpy() for v in pd.unique(g.dropna())]
+    plain_psf = np.full(len(gdf), np.nan)   # k nearest donors of any size
+    band_psf = np.full(len(gdf), np.nan)    # k nearest similar-sized donors
+    for in_g in groups:
+        d, t = np.flatnonzero(donor & in_g), np.flatnonzero(eligible & in_g)
+        if not len(t) or not len(d):
             continue
-        _, idx = cKDTree(xy[d]).query(xy[t], k=min(k, int(d.sum())))
-        est_psf[t] = np.median(psf[d][np.asarray(idx).reshape(int(t.sum()), -1)], axis=1)
-    est = pd.Series(est_psf, index=gdf.index) * area
-    total = pd.to_numeric(gdf[total_col], errors="coerce")
+        kk = min(k, len(d))
+        _, idx = cKDTree(xy[d]).query(xy[t], k=kk)
+        plain_psf[t] = np.median(psf[d][np.asarray(idx).reshape(len(t), -1)], axis=1)
+        if size_band:
+            for i in t:
+                gap = np.abs(np.log(area[d] / area[i]))
+                cand = d[gap <= np.log(size_band)]
+                if len(cand) < kk:
+                    cand = d[np.argsort(gap)[:kk]]
+                near = cand[np.argsort(np.hypot(*(xy[cand] - xy[i]).T))[:kk]]
+                band_psf[i] = np.median(psf[near])
+    share = np.ones(len(gdf)) if area_share is None else np.asarray(area_share, dtype=float)
+    total = pd.to_numeric(gdf[total_col], errors="coerce").to_numpy(float)
+    plain = plain_psf * area * share
+    est = band_psf * area * share if size_band else plain
+    floor_binding = np.zeros(len(gdf), bool)
+    if min_share is not None:
+        floor = np.minimum(plain, min_share * total)
+        floor_binding = floor > est
+        est = np.fmax(est, floor)
     return pd.DataFrame({
-        "est_psf": est_psf,
-        "new_land": np.minimum(est, cap * total).round(0),
-        "cap_binding": est.gt(cap * total),
+        "est_psf": band_psf if size_band else plain_psf,
+        "new_land": np.round(np.minimum(est, cap * total)),
+        "cap_binding": est > cap * total,
+        "floor_binding": floor_binding,
     }, index=gdf.index)
 
 
