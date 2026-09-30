@@ -124,8 +124,10 @@ export const STATE_NAMES: Record<string, string> = {
 /** All valid city keys. */
 export const CITY_KEYS = Object.keys(CITIES) as CityKey[];
 
-/** Fallback for a missing/unknown ?city= — South Bend, unless the allowlist excludes it. */
-export const DEFAULT_CITY: CityKey = 'southbend' in CITIES ? 'southbend' : CITY_KEYS[0];
+/** Fallback for a missing/unknown ?city= — South Bend, else the first allowed city that isn't devOnly
+ *  (vite.config.ts fails the build if the allowlist has an unknown or only devOnly cities). */
+export const DEFAULT_CITY: CityKey = 'southbend' in CITIES ? 'southbend'
+  : (CITY_KEYS.find((k) => !(CITIES[k] as any).devOnly) ?? CITY_KEYS[0]);
 
 /** Canonical UI label for a city, e.g. "Fort Collins, CO". */
 export function formatCityLabel(cityKey: CityKey): string {

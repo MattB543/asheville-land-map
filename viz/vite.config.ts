@@ -1,7 +1,22 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import { resolve } from 'path';
+import { existsSync, readFileSync } from 'fs';
 
-export default defineConfig(() => {
+// VITE_CITY_ALLOWLIST (src/cities.ts) trims a deployment to some cities. Check it here so a typo
+// fails the build instead of shipping a site with no cities, or one that defaults to a devOnly city.
+function checkCityAllowlist(mode: string): void {
+  const raw = process.env.VITE_CITY_ALLOWLIST ?? loadEnv(mode, resolve(__dirname, 'env')).VITE_CITY_ALLOWLIST ?? '';
+  const keys = raw.split(',').map((k) => k.trim().toLowerCase()).filter(Boolean);
+  if (!keys.length) return;
+  const file = (k: string) => resolve(__dirname, 'src/cities', `${k}.json`);
+  const unknown = keys.filter((k) => !existsSync(file(k)));
+  if (unknown.length) throw new Error(`VITE_CITY_ALLOWLIST names unknown cities: ${unknown.join(', ')}`);
+  if (keys.every((k) => JSON.parse(readFileSync(file(k), 'utf8')).devOnly))
+    throw new Error('VITE_CITY_ALLOWLIST has only devOnly cities; a deployed build would have no default city');
+}
+
+export default defineConfig(({ mode }) => {
+  checkCityAllowlist(mode);
   return {
     // Serve from domain root in production deployments (Azure SWA)
     // If you later host under a subpath, set base accordingly
