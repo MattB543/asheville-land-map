@@ -1112,7 +1112,7 @@ def main() -> None:
             be_state[i] = st
             has = (f"improvements are only {fmt.money(impr[i])}" if impr[i] > 0 else
                    "it carries no improvement value")
-            mapped = f", so it maps as {refined[i]}" if refined[i] else ""
+            mapped = f", currently mapped as {refined[i]}" if refined[i] else ""
 
             def flag(key: str, s: float, stk: float, txt: str) -> None:
                 sev[key][i], stake[key][i], reason[key][i] = s, stk, txt

@@ -100,6 +100,10 @@ Notes:
   vacant class does not beat building evidence (a $441,600 house on a class-311 "residential
   building lot"): vacant-class parcels with improvement value are re-judged by the land-share
   rule, and those flagged Improved=Y with no improvement value yet are left unclassified.
+  Exception: a $0 building on a Commercial / Industrial / Hotel / Parking Garage parcel marked built is
+  Underdeveloped, exactly as a $100 one is: there it's the assessor's "worth only its land" value or a
+  Helene write-down (45 of the 49 on 2026-09-30, per the 2024 roll). On house and apartment classes $0
+  usually means a new building not valued yet, so those stay unlabelled.
 - NOT SHIPPED: parcels with no valuation at all ($0 land and $0 improvements) — HOA common
   areas whose value the county folds into the homes, and lots / new construction the 2026 roll
   has not valued yet. They would render as the cheapest land in the city.
@@ -619,8 +623,22 @@ share_land = land / (land + impr).where(lambda s: s > 0)
 refined[stale] = np.where(impr[stale].gt(0) & share_land[stale].ge(SF_CUTOFF), "Underdeveloped", None)
 # The land share of an estimated condo lot is our estimate, not the assessor's.
 refined[ex["condo_land_imputed"].eq(1) & refined.eq("Underdeveloped")] = None
+# A $0 building means the same as a $100 one (which the ratio rule already calls Underdeveloped) on a
+# commercial / industrial / lodging / parking-garage parcel the county marks as built: the assessor's
+# "worth only its land" value (Kmart / Sears sites, motels, since the 2021 reappraisal) or a Helene
+# write-down. The shared helper leaves $0 + built unlabelled because on house and apartment classes it
+# usually means new construction not valued yet, so those stay unlabelled here too.
+ZERO_BUILDING_CATEGORIES = {"Commercial", "Industrial", "Hotel / Lodging", "Parking Garage"}
+zero_bld = (refined.isna() & impr.eq(0) & land.gt(0) & ex["Improved"].eq("Y")
+            & ex["property_land_use_category"].isin(ZERO_BUILDING_CATEGORIES)
+            & ex["Class"].ne("458")                        # MH/modular sales lot: homes are inventory
+            & ex["condo_land_imputed"].ne(1)
+            & ex["exempt_member_val"].fillna(0).eq(0))     # its building is on an exempt account
+refined[zero_bld] = "Underdeveloped"
 ex["property_land_use_refined"] = refined
-log(f"Vacant-class overrides: {int(stale.sum())} stale vacant classes with building evidence")
+log(f"Vacant-class overrides: {int(stale.sum())} stale vacant classes with building evidence; "
+    f"$0-building commercial/industrial parcels labelled Underdeveloped: {int(zero_bld.sum())} "
+    f"(${land[zero_bld].sum() / 1e6:,.1f}M land): {ex.loc[zero_bld, 'PIN'].tolist()}")
 
 # ── canonical fields ──────────────────────────────────────────────────────────
 den = ex["land_area_sqft"].replace(0, np.nan)
