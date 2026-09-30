@@ -3588,12 +3588,12 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
   const landPpsf = numFromKeys(props, ['land_value_per_sqft', 'REALLANDVA_per_sqft']);
   const landSize = (landVal != null && landPpsf != null && landPpsf > 0) ? landVal / landPpsf : null;
 
-  // Condo lots whose assessor records $0 land get an ESTIMATED land value from the ETL
-  // (condo_land_imputed = 1; impute_condo_land in data/parcel_calculations.py). Say so up front
-  // and on each row the estimate feeds, not just in a "1 = yes" row further down.
+  // Condo lots whose assessor doesn't split land from the units get an ESTIMATED land value from
+  // the ETL (condo_land_imputed = 1; impute_condo_land in data/parcel_calculations.py). Say so up
+  // front and on each row the estimate feeds, not just in a "1 = yes" row further down.
   const landEstimated = Number(props.condo_land_imputed) === 1;
-  const ESTIMATE_NOTE = 'The assessor records $0 land for this condominium lot, so its land value is '
-    + 'estimated from similar nearby parcels. Treat the land/improvement split as approximate.';
+  const ESTIMATE_NOTE = 'The assessor doesn\'t split this condominium\'s land from its units, so its land '
+    + 'value is estimated from similar nearby parcels. Treat the land/improvement split as approximate.';
   const ESTIMATED_KEYS = new Set([...LAND_VALUE_KEYS, 'land_value_per_sqft', 'REALLANDVA_per_sqft',
     'improvement_value', 'REALIMPROV', 'improvement_value_per_sqft', 'REALIMPROV_per_sqft']);
   const estimateMark = `<span title="${ESTIMATE_NOTE}" style="margin-left:4px; color:#b45309; `
