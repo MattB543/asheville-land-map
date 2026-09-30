@@ -50,8 +50,13 @@ Notes:
   gp-error outline in the default land-value view. So, like run_boston.py, the land of a lot
   whose value is mostly unsplit condo units (stacked NMP units, or a condo unit the county draws
   as its own polygon) is ESTIMATED: lot area x median land $/sqft of the
-  15 nearest non-condo taxable parcels (assessor-valued land, >=500 sqft), capped at 70% of the
-  lot's total value; improvement = total − land. Such lots carry condo_land_imputed = 1 and keep
+  15 nearest built, non-condo taxable parcels within 3x the lot's size (land $/sqft falls steeply
+  with size: ~$11.70 on quarter-acre lots vs ~$2.35 on 10+ acre residential tracts, so a large
+  condo development must not borrow house lots' rates); at least the lower-quartile townhome /
+  apartment land share (~11%) of the lot's value, but never more than the any-size
+  nearest-neighbour estimate; at most 70% of the lot's value. A development that also holds
+  exempt units gets land for its taxable accounts' value share only. improvement = total − land.
+  Such lots carry condo_land_imputed = 1 and keep
   the county's figure in assessor_land_value, and are never labelled "Underdeveloped" (their land
   share is our estimate). --no-condo-impute ships the assessor's $0 instead.
 - EXEMPT: the `Exempt` field mixes institutional exemptions with owner-level relief.
@@ -126,9 +131,8 @@ CLASS_CODES_URL = ("https://services6.arcgis.com/VLA0ImJ33zhtGEaP/arcgis/rest/se
                    "Buncombe_County_Parcel_Class_Codes/FeatureServer/0/query")
 CITY_CODE = "CAS"
 # Owner is fetched ONLY for the exemption logic/diagnostics below; it is never exported.
-OUT_FIELDS = ("objectid,PIN,Owner,NmpType,CondoUnit,CondoBuilding,SubName,SubLot,Acreage,City,Class,"
-              "Improved,Exempt,TotalMarketValue,AppraisedValue,TaxValue,LandUse,LandValue,"
-              "BuildingValue,Address,PropCard")
+OUT_FIELDS = ("objectid,PIN,Owner,NmpType,Acreage,City,Class,Improved,Exempt,TotalMarketValue,LandValue,"
+              "BuildingValue,PropCard")
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124 Safari/537.36",
            "Accept": "application/json, text/plain, */*"}
 SQFT_PER_ACRE = 43560.0
@@ -136,6 +140,8 @@ PAGE = 2000
 UTM = "EPSG:32617"
 CONDO_K = 15             # nearest donor parcels for the condo land estimate
 CONDO_CAP = 0.70         # estimated land never exceeds this share of the lot's total value
+CONDO_SIZE_BAND = 3.0    # donors within 3x the lot's area (land $/sqft falls steeply with lot size)
+CONDO_FLOOR_Q = 0.25     # floor = this quantile of townhome/apartment land shares
 UNSPLIT_MIN_SHARE = 0.5  # a condo lot = most of its value sits in $0-land condo unit records
 SF_CUTOFF, OTHER_CUTOFF = 0.67, 0.50
 
@@ -276,9 +282,9 @@ for c in ["LandValue", "BuildingValue", "TotalMarketValue", "Acreage"]:
 for c in ["Class", "Exempt", "Improved", "PropCard", "Owner"]:
     parcel[c] = parcel[c].fillna("").astype(str).str.strip()
 parcel["land_val"] = parcel["LandValue"].fillna(0)
-parcel["bld_val"] = parcel["BuildingValue"].fillna(0)
-parcel["tot_appr_val"] = parcel["TotalMarketValue"].fillna(parcel["land_val"] + parcel["bld_val"])
-features = parcel["tot_appr_val"] - parcel["land_val"] - parcel["bld_val"]
+_bld = parcel["BuildingValue"].fillna(0)
+parcel["tot_appr_val"] = parcel["TotalMarketValue"].fillna(parcel["land_val"] + _bld)
+features = parcel["tot_appr_val"] - parcel["land_val"] - _bld
 if (features < -1).any():
     raise RuntimeError(f"{int((features < -1).sum())} records have total < land + building — schema changed?")
 # Improvements = building + the county's "Features" (paving, outbuildings...): everything but land.
@@ -400,7 +406,7 @@ log(f"NMP records: {len(nmp):,} (condo units {int(nmp['NmpType'].eq(0).sum()):,}
 CONDO_CLASSES = {"120", "122", "466", "467"}
 LAND_ONLY_CLASSES = {"317", "306", "405", "105", "300", "301", "311", "320", "340", "312", "341",
                      "307", "438", ""}
-VALUE_COLS = ("land_val", "bld_val", "impr_val", "tot_appr_val")
+VALUE_COLS = ("land_val", "impr_val", "tot_appr_val")
 rows = []
 for root, grp_nmp in nmp.groupby("root"):
     par = std_by_root.loc[root]
@@ -454,10 +460,9 @@ parcel["exempt_member_val"] = parcel["exempt_member_val"].fillna(0.0)
 for c in ("n_accounts", "n_condo_units", "condo_regime"):
     parcel[c] = parcel[c].astype(int)
 # Value conservation: every record's value is either on a collapsed parcel or an exempt member left out.
-_left_out = float(merged["exempt_member_val"].where(merged["exempt_rec"].eq(0), 0).sum())
-_exempt_in_exempt_groups = float(merged.loc[merged["exempt_rec"].eq(1), "exempt_member_val"].sum())
-if abs(total_in - (parcel["tot_appr_val"].sum() + _left_out + _exempt_in_exempt_groups)) > 1:
+if abs(total_in - (parcel["tot_appr_val"].sum() + merged["exempt_member_val"].sum())) > 1:
     raise RuntimeError("NMP collapse does not conserve value")
+_left_out = float(merged["exempt_member_val"].where(merged["exempt_rec"].eq(0), 0).sum())
 log(f"After NMP collapse -> {len(parcel):,} parcels ({len(merged)} developments/leaseholds: "
     f"{merged['cat_rec'].value_counts().to_dict()})")
 log(f"  exempt member accounts left out of taxable groups: ${_left_out / 1e6:.1f}M "
@@ -526,16 +531,26 @@ ex["assessor_land_value"] = ex["land_value"]
 ex["condo_land_imputed"] = 0
 share = ex["unsplit_val"] / ex["full_market_value"].where(ex["full_market_value"] > 0)
 condo_lot = ex["condo_regime"].eq(1) & share.ge(UNSPLIT_MIN_SHARE)  # stacked units or a drawn unit
-donor = (ex["land_value"].gt(0) & ex["condo_regime"].eq(0) & ex["land_area_sqft"].ge(500)
-         & ex["likely_remnant"].eq(0) & ~ex["property_land_use_category"].isin(["Common Area"]))
+# Donors: assessor-valued, BUILT parcels (a condo site is developed land; raw tracts are valued lower).
+donor = (ex["land_value"].gt(0) & ex["improvement_value"].gt(0) & ex["condo_regime"].eq(0)
+         & ex["likely_remnant"].eq(0) & ~ex["property_land_use_category"].isin(["Common Area", "Vacant Land"]))
+# Floor: a lower-quartile townhome / apartment lot's land share (attached housing, like condos).
+_attached = donor & ex["property_land_use_category"].isin(["Townhome", "Multifamily"])
+floor_share = float((ex.loc[_attached, "land_value"] / ex.loc[_attached, "full_market_value"]).quantile(CONDO_FLOOR_Q))
+# A development that also holds exempt units (a City-owned unit, low-income rentals) gets land for its
+# taxable accounts' share only, taken as their share of the development's value.
+taxable_share = ex["full_market_value"] / (ex["full_market_value"] + ex["exempt_member_val"])
 est = impute_condo_land(ex, eligible=condo_lot.to_numpy(), donor=donor.to_numpy(), land_col="land_value",
                         total_col="full_market_value", area_col="land_area_sqft", k=CONDO_K, cap=CONDO_CAP,
+                        size_band=CONDO_SIZE_BAND, min_share=floor_share, area_share=taxable_share.to_numpy(),
                         metric_crs=UTM)
 apply = condo_lot & est["new_land"].notna() & est["new_land"].gt(ex["land_value"])
 log(f"Condo lots (unsplit condo units >= {UNSPLIT_MIN_SHARE:.0%} of value): {int(condo_lot.sum())}; estimate "
     f"{'NOT applied (--no-condo-impute)' if ARGS.no_condo_impute else 'applied'} to {int(apply.sum())} "
-    f"(+${(est['new_land'] - ex['land_value'])[apply].sum() / 1e6:,.1f}M land, cap binding "
-    f"{int((apply & est['cap_binding']).sum())})")
+    f"(+${(est['new_land'] - ex['land_value'])[apply].sum() / 1e6:,.1f}M land). Donors within "
+    f"{CONDO_SIZE_BAND:g}x the lot's size; land-share floor {floor_share:.1%} binding on "
+    f"{int((apply & est['floor_binding']).sum())}; cap binding {int((apply & est['cap_binding']).sum())}; "
+    f"{int((apply & taxable_share.lt(1)).sum())} lots scaled to their taxable share")
 if not ARGS.no_condo_impute:
     ex.loc[apply, "land_value"] = est.loc[apply, "new_land"]
     ex.loc[apply, "improvement_value"] = ex.loc[apply, "full_market_value"] - ex.loc[apply, "land_value"]
