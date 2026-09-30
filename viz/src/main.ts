@@ -3481,20 +3481,35 @@ const POPUP_ALIAS_GROUPS: string[][] = [
 ];
 const POPUP_ALIAS_OF = new Map<string, string>(
   POPUP_ALIAS_GROUPS.flatMap((g, i) => g.map((k) => [k, `alias:${i}`] as [string, string])));
+// A key followed by its aliases, e.g. REALLANDVA_per_sqft -> [REALLANDVA_per_sqft, land_value_per_sqft].
+const withAliases = (k: string): string[] =>
+  [k, ...(POPUP_ALIAS_GROUPS.find((g) => g.includes(k)) ?? []).filter((a) => a !== k)];
 
-// numOrNull() reads null and '' as 0 (Number(null) === 0), so missing values are tested explicitly.
-const isBlank = (v: unknown) => v === undefined || v === null || v === '';
+// numOrNull() reads null, '' and '  ' as 0 (Number(null) === 0), which showed missing values as a
+// false $0. The popup treats them as missing; a genuine 0 (or '0') is still 0.
+function popupNum(v: unknown): number | null {
+  if (v == null || (typeof v === 'string' && v.trim() === '')) return null;
+  return numOrNull(v);
+}
 
-// PMTiles don't carry the per-sqft rates (they're computed client-side as value ÷ lot area, see
-// PER_SQFT_SRC), so derive them for the popup too instead of showing "—". A missing value derives
-// no rate (not a false $0), and a missing rate doesn't block the derivation.
+// The first of `keys` that holds a number.
+function numFromKeys(props: Record<string, any>, keys: string[]): number | null {
+  for (const k of keys) { const v = popupNum(props[k]); if (v != null) return v; }
+  return null;
+}
+
+// PMTiles don't carry the canonical per-sqft rates (they're computed client-side as value ÷ lot
+// area, see PER_SQFT_SRC), so derive them for the popup too instead of showing "—". A rate the
+// feature already has under any alias (a genuine 0 included) is kept, and a missing value derives
+// no rate (not a false $0). GeoParquet cities ship their own rates, sometimes over a different area
+// on purpose (Copenhagen divides by the assessed, not the geometry, area), so they're left as-is.
 function withDerivedRates(props: Record<string, any>): Record<string, any> {
-  const acres = isBlank(props.land_area_acres) ? null : numOrNull(props.land_area_acres);
-  if (acres == null || acres <= 0) return props;
+  const acres = popupNum(props.land_area_acres);
+  if (!cityUsesPmtiles() || acres == null || acres <= 0) return props;
   const out = { ...props };
   for (const [rate, src] of Object.entries(PER_SQFT_SRC)) {
-    if (!isBlank(out[rate]) || isBlank(out[src])) continue;
-    const v = numOrNull(out[src]);
+    if (numFromKeys(props, withAliases(rate)) != null) continue;
+    const v = numFromKeys(props, withAliases(src));
     if (v != null) out[rate] = v / (acres * 43560);
   }
   return out;
@@ -3507,7 +3522,10 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
   const heightM = metric != null ? computeExtrusionHeightMeters(metric) : null;
   const parcelLink = normalizeParcelLink(typeof props.link === 'string' ? props.link.trim() : '');
   const opportunityType = String(props?.[DEV_CATEGORY_FIELD] ?? '').trim();
-  const landValuePerSqft = preferredLandValuePpsfField ? numOrNull(props?.[preferredLandValuePpsfField]) : null;
+  // Read through the aliases so the summary shows the same rate as the table and Land Size, and
+  // no rate (not $0) when it's missing.
+  const landValuePerSqft = preferredLandValuePpsfField
+    ? numFromKeys(props, withAliases(preferredLandValuePpsfField)) : null;
 
   const unitKey = unitsSelect.value as keyof typeof UNIT_TO_METERS;
   const unitText = (unitsSelect.options[unitsSelect.selectedIndex]?.text || unitKey);
@@ -3542,8 +3560,8 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
       fieldKeysByLabel.set(identity, k);
     }
   }
-  // Then one row per label (two different keys a city labels identically, e.g. TLLDIMPROV and
-  // full_market_value both "Total Market Value"), keeping the first key chosen above.
+  // Then one row per label, as before: an alias-group key and an unrelated key that a city labels
+  // identically still collapse to the first key chosen above.
   const keysByLabel = new Map<string, string>();
   for (const k of fieldKeysByLabel.values()) {
     const label = FIELD_LABELS[k] || k;
@@ -3566,15 +3584,8 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
   // Building floor area is NOT derivable here: every per-sqft metric divides by LAND area, so
   // improvement_value ÷ its per-sqft would just yield land area again. Shown after the land row.
   const LAND_VALUE_KEYS = ['current_full_land_value', 'REALLANDVA', 'land_value'];
-  const numFromKeys = (keys: string[]): number | null => {
-    for (const k of keys) {
-      const v = isBlank((props as any)[k]) ? null : numOrNull((props as any)[k]);
-      if (v != null) return v;
-    }
-    return null;
-  };
-  const landVal = numFromKeys(LAND_VALUE_KEYS);
-  const landPpsf = numFromKeys(['land_value_per_sqft', 'REALLANDVA_per_sqft']);
+  const landVal = numFromKeys(props, LAND_VALUE_KEYS);
+  const landPpsf = numFromKeys(props, ['land_value_per_sqft', 'REALLANDVA_per_sqft']);
   const landSize = (landVal != null && landPpsf != null && landPpsf > 0) ? landVal / landPpsf : null;
 
   // Condo lots whose assessor records $0 land get an ESTIMATED land value from the ETL
