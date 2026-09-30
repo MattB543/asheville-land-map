@@ -112,19 +112,21 @@ def impute_condo_land(
     capped at `cap` x the lot's total value and rounded to whole dollars.
 
     Options, all off by default (the plain rule above):
-    - size_band: use the k nearest donors whose area is within this factor of the lot's (the k
-      most similar-sized donors if fewer qualify). Land $/sqft falls steeply with lot size, so a
-      100-acre condo development should not borrow quarter-acre house lots' rates.
-    - min_share: a floor of min_share x the lot's total value under the size-banded estimate,
-      for large sites whose similar-sized neighbours are cheap tracts. The floor never lifts the
-      estimate above the plain (any-size) nearest-neighbour one.
+    - size_band: use the k nearest donors whose area is within this factor of the lot's. Land
+      $/sqft falls steeply with lot size, so a 100-acre condo development should not borrow
+      quarter-acre house lots' rates. A lot with fewer than k such donors gets no size-matched
+      estimate (`low_support`): the most similar-sized parcels citywide are distant, unrelated uses.
+    - min_share: a floor of min_share x the lot's total value under the size-banded estimate
+      (and the estimate for `low_support` lots), for large sites whose similar-sized neighbours
+      are cheap tracts. The floor itself never exceeds the plain (any-size) nearest-neighbour
+      estimate.
     - area_share: per-row fraction of the lot the estimate is for (e.g. a development's taxable
       accounts' value share when it also holds exempt units); default 1.
 
     Returns a DataFrame on gdf.index with `est_psf` (the donors' median $/sqft; NaN off
-    `eligible`), `new_land` (the final estimate), `cap_binding` and `floor_binding`. Applying it
-    is the caller's call (normally only where new_land exceeds the assessor's land); callers must
-    keep the assessor figure alongside and flag the estimate.
+    `eligible`), `new_land` (the final estimate), `cap_binding`, `floor_binding` and
+    `low_support`. Applying it is the caller's call (normally only where new_land exceeds the
+    assessor's land); callers must keep the assessor figure alongside and flag the estimate.
     """
     from scipy.spatial import cKDTree
 
@@ -132,8 +134,8 @@ def impute_condo_land(
     xy = np.column_stack([pts.x.to_numpy(), pts.y.to_numpy()])
     land = pd.to_numeric(gdf[land_col], errors="coerce").to_numpy(float)
     area = pd.to_numeric(gdf[area_col], errors="coerce").to_numpy(float)
-    area = np.where(area > 0, area, np.nan)
-    psf = land / area
+    pos_area = np.where(area > 0, area, np.nan)  # donors and size matching need a real area
+    psf = land / pos_area
     eligible = np.asarray(eligible, dtype=bool)
     donor = np.asarray(donor, dtype=bool) & np.isfinite(psf)
     if group_col is None:
@@ -146,6 +148,7 @@ def impute_condo_land(
         groups = [(g == v).to_numpy() for v in pd.unique(g.dropna())]
     plain_psf = np.full(len(gdf), np.nan)   # k nearest donors of any size
     band_psf = np.full(len(gdf), np.nan)    # k nearest similar-sized donors
+    low_support = np.zeros(len(gdf), bool)
     for in_g in groups:
         d, t = np.flatnonzero(donor & in_g), np.flatnonzero(eligible & in_g)
         if not len(t) or not len(d):
@@ -154,27 +157,28 @@ def impute_condo_land(
         _, idx = cKDTree(xy[d]).query(xy[t], k=kk)
         plain_psf[t] = np.median(psf[d][np.asarray(idx).reshape(len(t), -1)], axis=1)
         if size_band:
-            for i in t:
-                gap = np.abs(np.log(area[d] / area[i]))
-                cand = d[gap <= np.log(size_band)]
+            for i in t[np.isfinite(pos_area[t])]:
+                cand = d[np.abs(np.log(pos_area[d] / pos_area[i])) <= np.log(size_band)]
                 if len(cand) < kk:
-                    cand = d[np.argsort(gap)[:kk]]
-                near = cand[np.argsort(np.hypot(*(xy[cand] - xy[i]).T))[:kk]]
-                band_psf[i] = np.median(psf[near])
+                    low_support[i] = True
+                    continue
+                dist = np.hypot(*(xy[cand] - xy[i]).T)
+                band_psf[i] = np.median(psf[cand[np.argpartition(dist, kk - 1)[:kk]]])
     share = np.ones(len(gdf)) if area_share is None else np.asarray(area_share, dtype=float)
     total = pd.to_numeric(gdf[total_col], errors="coerce").to_numpy(float)
-    plain = plain_psf * area * share
+    plain = plain_psf * area * share  # raw area, as the plain rule always used
     est = band_psf * area * share if size_band else plain
     floor_binding = np.zeros(len(gdf), bool)
     if min_share is not None:
         floor = np.minimum(plain, min_share * total)
-        floor_binding = floor > est
+        floor_binding = (floor > est) | (np.isnan(est) & np.isfinite(floor))
         est = np.fmax(est, floor)
     return pd.DataFrame({
         "est_psf": band_psf if size_band else plain_psf,
         "new_land": np.round(np.minimum(est, cap * total)),
         "cap_binding": est > cap * total,
         "floor_binding": floor_binding,
+        "low_support": low_support,
     }, index=gdf.index)
 
 
