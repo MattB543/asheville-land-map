@@ -1,3 +1,24 @@
+# Asheville Land Map
+
+**Live at [land.avlgo.com](https://land.avlgo.com)**, part of [AVL GO](https://avlgo.com).
+
+This is an Asheville, NC deployment of **Civic Mapper** by the
+[Center for Land Economics](https://landeconomics.org)
+([upstream repo](https://github.com/Center-for-Land-Economics/civicmapper), MIT licence, kept in
+[LICENSE](LICENSE)). It adds:
+
+- **Asheville data**: `data/jurisidictions/run_asheville.py` builds the city's parcels from Buncombe
+  County's public parcel layer (2026 tax-year values, which still use the 2021 reappraisal).
+  Values are served as PMTiles from Vercel Blob.
+- **A parcel review list** (`/review`): parcels whose records look wrong, and the biggest
+  underused land. It's built by `data/scripts/build_review_feed.py`.
+- **AVL GO styling** (`docs/avlgo-style-guide.md`), with the site limited to Asheville.
+
+General fixes found along the way are offered back upstream. Everything below is the upstream
+Civic Mapper README.
+
+---
+
 # Civic Mapper
 
 Interactive 3D maps of parcel-level property data — land value, improvement
