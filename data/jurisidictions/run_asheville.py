@@ -52,9 +52,11 @@ Notes:
   as its own polygon) is ESTIMATED: lot area x median land $/sqft of the
   15 nearest built, non-condo taxable parcels within 3x the lot's size (land $/sqft falls steeply
   with size: ~$11.70 on quarter-acre lots vs ~$2.35 on 10+ acre residential tracts, so a large
-  condo development must not borrow house lots' rates); at least the lower-quartile townhome /
-  apartment land share (~11%) of the lot's value, but never more than the any-size
-  nearest-neighbour estimate; at most 70% of the lot's value. A development that also holds
+  condo development must not borrow house lots' rates). A floor of the lower-quartile townhome /
+  apartment land share (~11%) of the lot's value applies, though the floor itself never exceeds
+  the any-size nearest-neighbour estimate; a lot with fewer than 15 similar-sized donors gets
+  just that floor (the most similar-sized parcels citywide are distant, unrelated uses). At most
+  70% of the lot's value. A development that also holds
   exempt units gets land for its taxable accounts' value share only. improvement = total − land.
   Such lots carry condo_land_imputed = 1 and keep
   the county's figure in assessor_land_value, and are never labelled "Underdeveloped" (their land
@@ -549,8 +551,11 @@ log(f"Condo lots (unsplit condo units >= {UNSPLIT_MIN_SHARE:.0%} of value): {int
     f"{'NOT applied (--no-condo-impute)' if ARGS.no_condo_impute else 'applied'} to {int(apply.sum())} "
     f"(+${(est['new_land'] - ex['land_value'])[apply].sum() / 1e6:,.1f}M land). Donors within "
     f"{CONDO_SIZE_BAND:g}x the lot's size; land-share floor {floor_share:.1%} binding on "
-    f"{int((apply & est['floor_binding']).sum())}; cap binding {int((apply & est['cap_binding']).sum())}; "
-    f"{int((apply & taxable_share.lt(1)).sum())} lots scaled to their taxable share")
+    f"{int((apply & est['floor_binding']).sum())} (incl. {int((apply & est['low_support']).sum())} with too few "
+    f"similar-sized donors: {ex.loc[apply & est['low_support'], 'PIN'].tolist()}); cap binding "
+    f"{int((apply & est['cap_binding']).sum())}; {int((apply & taxable_share.lt(1)).sum())} lots scaled to "
+    f"their taxable share")
+ex["_condo_low_support"] = apply & est["low_support"]
 if not ARGS.no_condo_impute:
     ex.loc[apply, "land_value"] = est.loc[apply, "new_land"]
     ex.loc[apply, "improvement_value"] = ex.loc[apply, "full_market_value"] - ex.loc[apply, "land_value"]
@@ -612,6 +617,9 @@ note[_combined] = ("Sum of " + ex.loc[_combined, "n_accounts"].astype(str) + " t
 _imp = ex["condo_land_imputed"].eq(1)
 note[_imp] = (note[_imp] + " Land value is estimated from neighbouring parcels (the county assigns "
               "condo land $0).").str.strip()
+_low = _imp & ex["_condo_low_support"]
+note[_low] = note[_low] + (" Few parcels of similar size exist nearby, so the estimate is a conservative "
+                           "floor of about 11% of the lot's value.")
 ex["record_note"] = note.where(note.ne(""), None)
 
 # ── export ────────────────────────────────────────────────────────────────────
