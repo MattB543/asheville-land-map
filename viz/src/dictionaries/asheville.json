@@ -1,0 +1,32 @@
+{
+  "_config": {
+    "usePmtiles": true,
+    "pmtilesUrl": "asheville-nc-parcels.pmtiles",
+    "pmtilesMetadataUrl": "asheville-nc-parcels-metadata.json",
+    "lowZoomOpacityMultiplier": 1.0,
+    "lowZoomFadeStart": 11.5,
+    "lowZoomFadeEnd": 12,
+    "parcelMinZoom": 12,
+    "hasParkingData": true
+  },
+  "parcel_id": "Parcel PIN",
+  "use_desc": "Assessor Class",
+  "exemption_flag": "Exemption Flag",
+  "property_land_use_category": "Property Category (Original)",
+  "property_land_use_refined": "Property Category (Refined)",
+  "full_market_value": "Total Market Value",
+  "TLLDIMPROV": "Total Market Value",
+  "full_market_value_per_sqft": "Total value/land ft²",
+  "TLLDIMPROV_per_sqft": "Total value/land ft²",
+  "current_full_land_value": "Land Market Value",
+  "land_value_per_sqft": "Land value/land ft²",
+  "improvement_value": "Improvements Market Value (buildings + features)",
+  "improvement_value_per_sqft": "Improvements value/land ft²",
+  "assessor_land_value": "Land Value as Assessed (condos: $0, not split by the county)",
+  "condo_land_imputed": "Condo Land Estimated from Neighbors (1 = yes)",
+  "n_condo_units": "Condo Units on Lot",
+  "n_accounts": "Tax Accounts on Lot",
+  "record_note": "Note",
+  "land_area_acres": "Land Area (acres)",
+  "link": "Property Record Card"
+}

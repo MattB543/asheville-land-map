@@ -109,7 +109,7 @@ for (const [path, mod] of Object.entries(cityModules)) {
 /** Full state names keyed by the two-letter code used in CityDef.state. */
 export const STATE_NAMES: Record<string, string> = {
   ca: 'California', co: 'Colorado', ct: 'Connecticut', dc: 'District of Columbia', ga: 'Georgia', il: 'Illinois', in: 'Indiana',
-  ma: 'Massachusetts', md: 'Maryland', mi: 'Michigan',
+  ma: 'Massachusetts', md: 'Maryland', mi: 'Michigan', nc: 'North Carolina',
   mn: 'Minnesota', mo: 'Missouri', nm: 'New Mexico', ny: 'New York', oh: 'Ohio', ok: 'Oklahoma',
   or: 'Oregon', ri: 'Rhode Island', tx: 'Texas', ut: 'Utah', va: 'Virginia', wa: 'Washington', wv: 'West Virginia',
   ee: 'Estonia', dk: 'Denmark'

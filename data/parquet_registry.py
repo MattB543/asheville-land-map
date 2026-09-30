@@ -114,6 +114,10 @@ CITY_PARQUETS: dict[str, CityParquet] = {
         city="vancouver", state="wa", legacy_filename="vancouver-wa-parcels.parquet"
     ),
     "dmv": CityParquet(city="dmv", state="dc", legacy_filename="dmv-dc-parcels.parquet"),
+    # City of Asheville, NC (Buncombe County roll, restricted to the CAS municipal tax district).
+    "asheville": CityParquet(
+        city="asheville", state="nc", legacy_filename="asheville-nc-parcels.parquet"
+    ),
     # Duluth GA (Gwinnett County, metro Atlanta) — NOT Duluth MN. A future Duluth MN
     # needs its own key; this one holds the plain `duluth` slug.
     "duluth": CityParquet(city="duluth", state="ga", legacy_filename="duluth-ga-parcels.parquet"),
