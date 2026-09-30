@@ -1,6 +1,6 @@
 {
   "notes": [
-    "City of Asheville, NC (Buncombe County seat). Source is Buncombe County GIS's public opendata MapServer layer 1 ('Property') — geometry + 2026 reappraisal land/building/total market values + property class + exemption code in one layer. See run_asheville.py.",
+    "City of Asheville, NC (Buncombe County seat). Source is Buncombe County GIS's public opendata MapServer layer 1 ('Property') — geometry + 2026 tax-year land/building/total market values (still the 2021 reappraisal's: a 2026 state law postponed the new reappraisal to 2027) + property class + exemption code in one layer. See run_asheville.py.",
     "City restriction uses the assessor's municipal TAX-DISTRICT code City='CAS' (not the mailing CityName), cross-checked symmetrically against a representative-point-within test on the county's Incorporated Areas polygon: IoU 99.98% (39,813 in both, 7 CAS outside, 1 non-CAS inside).",
     "~33.6k shipped parcels ($18.4B taxable market value), served as PMTiles with H3 hexes below z12 (parquet_to_pmtiles.py --drop-remnants): the browser GeoParquet path froze Chrome for ~30 s building the 3D extrusions.",
     "Improvements = total market value − land, i.e. the county's BuildingValue PLUS its 'Features' value (paving, outbuildings; $57.7M citywide).",

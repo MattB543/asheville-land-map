@@ -11,7 +11,9 @@ Source (Buncombe County GIS open data, public, no token):
   ~135k parcels countywide. One-stop layer: geometry + current assessor LandValue /
   BuildingValue / TotalMarketValue + property Class + Exempt code + Acreage + a per-parcel
   property-record-card URL (PropCard), all in one place. No joins, no manual downloads.
-  TaxYear = 26 (the 2026 reappraisal roll, "MyValueBC 2026").
+  TaxYear = 26: the 2026 TAX YEAR, whose values are still the 2021 reappraisal's (plus Helene
+  write-downs and new construction). A July 2026 state law put Buncombe's 2026 reappraisal
+  ("MyValueBC 2026") in a moratorium until 1 Jan 2027, so 2026 bills use 2021 values.
 - opendata MapServer layer 4 ("Incorporated Areas"), DistCode='CAS' = CITY OF ASHEVILLE.
 - Class code lookup: Buncombe County "Parcel Class Codes" table (AGOL item
   926a714867ef4e0f9147c486516614d5) — exported as use_desc; categorize() quotes it.
@@ -74,8 +76,11 @@ Notes:
   FARM BUREAU" and "BUNCOMBE COUNTY DEMOCRATIC PARTY" are private.
   KEPT (owner relief on ordinary taxable property): ELD (elderly/disabled homestead
   exclusion), VET (disabled veteran), DIS (disabled), HIS (historic 50% deferral), BLD
-  (builder inventory), BRF (brownfield), and EX2 (pollution-abatement/recycling-equipment
-  exclusion on otherwise taxable industrial sites — New Belgium Brewing, two scrap yards).
+  (builder inventory), BRF (brownfield), and EX2 (a PARTIAL exclusion for recycling / pollution-
+  abatement property on otherwise taxable industrial sites — New Belgium Brewing, two scrap yards;
+  their 2026 bills exempt 3-86% of value, so they stay at full market value like other partial relief).
+- Present-use value (LandUse A/F/H, 15 records): land is shown at MARKET value (use value + the
+  deferred amount), not the lower use value the county taxes; record_note says so.
   EX1 (Givens Estates, 5 parcels, $191.5M) and EX4 (Deerfield, 28 parcels, $142.2M) are CCRCs,
   which G.S. 105-278.6A can exclude in part (20/40/60/80%) as well as in full. The layer has no
   exempt amount, but the county's tax bills (tax.buncombenc.gov, checked 2026-09-30) do: Givens'
@@ -133,8 +138,8 @@ CLASS_CODES_URL = ("https://services6.arcgis.com/VLA0ImJ33zhtGEaP/arcgis/rest/se
                    "Buncombe_County_Parcel_Class_Codes/FeatureServer/0/query")
 CITY_CODE = "CAS"
 # Owner is fetched ONLY for the exemption logic/diagnostics below; it is never exported.
-OUT_FIELDS = ("objectid,PIN,Owner,NmpType,Acreage,City,Class,Improved,Exempt,TotalMarketValue,LandValue,"
-              "BuildingValue,PropCard")
+OUT_FIELDS = ("objectid,PIN,Owner,NmpType,SubName,Acreage,City,Class,Improved,Exempt,TotalMarketValue,"
+              "AppraisedValue,LandUse,LandValue,BuildingValue,PropCard")
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124 Safari/537.36",
            "Accept": "application/json, text/plain, */*"}
 SQFT_PER_ACRE = 43560.0
@@ -279,13 +284,23 @@ if iou < 0.995:
 parcel = raw[is_cas].copy()
 
 parcel["PIN"] = parcel["PIN"].astype(str).str.strip()
-for c in ["LandValue", "BuildingValue", "TotalMarketValue", "Acreage"]:
+for c in ["LandValue", "BuildingValue", "TotalMarketValue", "AppraisedValue", "Acreage"]:
     parcel[c] = pd.to_numeric(parcel[c], errors="coerce")
-for c in ["Class", "Exempt", "Improved", "PropCard", "Owner"]:
+for c in ["Class", "Exempt", "Improved", "PropCard", "Owner", "LandUse", "SubName"]:
     parcel[c] = parcel[c].fillna("").astype(str).str.strip()
 parcel["land_val"] = parcel["LandValue"].fillna(0)
 _bld = parcel["BuildingValue"].fillna(0)
 parcel["tot_appr_val"] = parcel["TotalMarketValue"].fillna(parcel["land_val"] + _bld)
+# Present-use value (farm / forest / horticulture, LandUse A/F/H): LandValue is the land's low USE
+# value, while TotalMarketValue is full market value and AppraisedValue the use-value total. The gap
+# is deferred LAND value; left out, it would ship as improvements that don't exist.
+_deferred = (parcel["tot_appr_val"] - parcel["AppraisedValue"]).where(parcel["AppraisedValue"].notna(), 0).clip(lower=0)
+_puv = _deferred.gt(1)
+if (_puv & ~parcel["LandUse"].isin(["A", "F", "H"])).any():
+    raise RuntimeError("TotalMarketValue != AppraisedValue outside the present-use-value program — schema changed?")
+parcel["land_val"] = parcel["land_val"] + _deferred
+log(f"Present-use-value land: {int(_puv.sum())} records, ${_deferred.sum() / 1e6:.2f}M of deferred land value "
+    f"moved from improvements to land")
 features = parcel["tot_appr_val"] - parcel["land_val"] - _bld
 if (features < -1).any():
     raise RuntimeError(f"{int((features < -1).sum())} records have total < land + building — schema changed?")
@@ -433,7 +448,9 @@ for root, grp_nmp in nmp.groupby("root"):
     # trust-owned lots), but keeping them would ship the exempt land under them too: the whole
     # airport rendered as a taxable parcel. The map is about land, so the group goes with its land.
     row["exempt_rec"] = int(par["exempt_rec"])
-    row["Improved"] = "Y" if taxable["Improved"].eq("Y").any() else par["Improved"]
+    # A building on an EXEMPT member still stands on the lot (A-B Tech's Enka campus on BASF's land):
+    # the lot is built, even though that building's value isn't taxable and isn't summed.
+    row["Improved"] = "Y" if members["Improved"].eq("Y").any() else par["Improved"]
     row["n_accounts"] = len(taxable)
     # Condo units: the stacked NMP units, plus the parent when it is itself a drawn condo unit.
     is_unit = pd.to_numeric(taxable["NmpType"], errors="coerce").eq(0) | taxable["Class"].isin(CONDO_CLASSES)
@@ -452,7 +469,17 @@ parcel = gpd.GeoDataFrame(pd.concat([std[~std["root"].isin(merged["root"])], mer
 # A condo unit the county draws as its OWN polygon (24 commercial condos, a few residential) is a
 # one-unit condo regime: same $0-land treatment, so it gets the same estimate.
 _solo = parcel["n_accounts"].isna()
-_solo_condo = _solo & parcel["Class"].isin(CONDO_CLASSES)
+# Some drawn units carry a building class instead (an office condo coded 464 in Park South Office
+# Complex, whose other units are all 466): a $0-land, valued unit in a subdivision of condo units is one too.
+_sub = parcel["SubName"].where(parcel["SubName"].ne(""))
+_condo_subs = parcel[_solo & _sub.notna()].groupby("SubName")["Class"].agg(
+    lambda s: s.isin(CONDO_CLASSES).sum() >= 3 and s.isin(CONDO_CLASSES).mean() >= 0.5)
+_condo_subs = set(_condo_subs[_condo_subs].index)
+_solo_condo = _solo & (parcel["Class"].isin(CONDO_CLASSES)
+                       | (_sub.isin(_condo_subs) & parcel["land_val"].le(0) & parcel["tot_appr_val"].gt(0)
+                          & ~parcel["Class"].isin(LAND_ONLY_CLASSES)))
+log(f"Drawn condo units: {int(_solo_condo.sum())} ({int((_solo_condo & ~parcel['Class'].isin(CONDO_CLASSES)).sum())} "
+    f"by subdivision despite a non-condo class)")
 parcel.loc[_solo, "n_accounts"] = 1
 parcel.loc[_solo, "n_condo_units"] = _solo_condo[_solo].astype(int)
 parcel.loc[_solo, "condo_regime"] = _solo_condo[_solo].astype(int)
@@ -617,6 +644,14 @@ note[_combined] = ("Sum of " + ex.loc[_combined, "n_accounts"].astype(str) + " t
 _imp = ex["condo_land_imputed"].eq(1)
 note[_imp] = (note[_imp] + " Land value is estimated from neighbouring parcels (the county assigns "
               "condo land $0).").str.strip()
+_ex_mem = ex["exempt_member_val"].gt(0)
+_money = lambda v: f"${v / 1e6:,.1f}M" if v >= 1e6 else f"${v / 1e3:,.0f}k"  # noqa: E731
+note[_ex_mem] = (note[_ex_mem] + " Leaves out " + ex.loc[_ex_mem, "exempt_member_val"].map(_money)
+                 + " of tax-exempt accounts on this lot (e.g. a building held by a public body or "
+                 "nonprofit).").str.strip()
+_puv_lot = ex["LandUse"].isin(["A", "F", "H"])
+note[_puv_lot] = (note[_puv_lot] + " Farm/forest present-use land: shown at market value; the county taxes it "
+                  "at a lower use value.").str.strip()
 _low = _imp & ex["_condo_low_support"]
 note[_low] = note[_low] + (" Few parcels of similar size exist nearby, so the estimate is a conservative "
                            "floor of about 11% of the lot's value.")
