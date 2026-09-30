@@ -287,6 +287,11 @@ def verify(system: str) -> None:
                 print(f"  {b}: NOT FOUND")
                 all_ok = False
 
+    # Present isn't enough: an older tippecanoe earlier on PATH would still bake empty hexes.
+    if all_ok and not tippecanoe_ok(["wsl", "--"] if system == "Windows" else None):
+        print(f"  tippecanoe: older than {'.'.join(map(str, MIN_TIPPECANOE))} (see MIN_TIPPECANOE)")
+        all_ok = False
+
     if all_ok:
         print("\nAll tools installed successfully.")
     else:
