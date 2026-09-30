@@ -40,6 +40,9 @@ interface ReviewItem {
   estimated_land?: boolean;
   issue_score?: number;
   issue_signals?: string[];
+  /** Opportunities: why the parcel is listed (vacant / underdeveloped / parking / token_building /
+   *  storm_writedown). Token buildings and write-downs carry the 'underdeveloped' signal too. */
+  opportunity_type?: string;
 }
 
 interface SignalMeta { label: string; description: string; count: number }
@@ -57,7 +60,8 @@ interface ReviewDoc {
   city_medians?: { land_psf?: number; lot_sqft?: number; land?: number; total?: number; impr_share?: number };
   link_template?: string | null;
   issues: { flagged: number; items: ReviewItem[] };
-  opportunities: { eligible: number; land_total?: number; land_median?: number; items: ReviewItem[] };
+  opportunities: { eligible: number; land_total?: number; land_median?: number; top_by_land?: number;
+    token_buildings?: number; storm_writedowns?: number; items: ReviewItem[] };
 }
 
 const BATCH = 20;
@@ -69,8 +73,12 @@ const OPP_LABELS: Record<string, string> = {
   vacant: 'Vacant',
   underdeveloped: 'Underdeveloped',
   parking: 'Surface parking',
+  token_building: 'Token building',
+  storm_writedown: 'Helene write-down',
   check_data: 'Check the data',
 };
+/** Opportunity types with their own chip (instead of the generic map class). */
+const OPP_TYPES_WITH_CHIP = new Set(['token_building', 'storm_writedown']);
 
 // ---- DOM ----
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -247,8 +255,10 @@ function cardHtml(it: ReviewItem): string {
          <div class="rv-metric-lbl">Land value</div>
        </div>`;
 
+  const oppType = tab === 'opportunities' && OPP_TYPES_WITH_CHIP.has(it.opportunity_type ?? '')
+    ? it.opportunity_type! : null;
   const reasons = it.reasons.map((t, i) => {
-    const sig = it.signals[i] ?? '';
+    const sig = (i === 0 && oppType) || it.signals[i] || '';
     return `<li class="rv-reason"><span class="rv-chip sig-${esc(sig)}"><span class="rv-dot"></span>${esc(chipLabel(sig))}</span>`
       + `<span>${esc(t)}</span></li>`;
   }).join('');
@@ -330,13 +340,17 @@ function buildFilterOptions(): void {
     fillSelect(signalEl, 'All signals', [...sigs.entries()].sort((a, b) => b[1] - a[1])
       .map(([s, n]) => [s, chipLabel(s), n]));
   } else {
-    signalLabelEl.textContent = 'Map class';
+    signalLabelEl.textContent = 'Type';
     for (const it of list) {
       if (it.refined) sigs.set(`refined:${it.refined}`, (sigs.get(`refined:${it.refined}`) ?? 0) + 1);
+      if (OPP_TYPES_WITH_CHIP.has(it.opportunity_type ?? ''))
+        sigs.set(`type:${it.opportunity_type}`, (sigs.get(`type:${it.opportunity_type}`) ?? 0) + 1);
       if (it.issue_score != null) sigs.set('flagged', (sigs.get('flagged') ?? 0) + 1);
     }
-    fillSelect(signalEl, 'All classes', [...sigs.entries()]
-      .map(([k, n]): [string, string, number] => [k, k === 'flagged' ? 'Also a likely data issue' : k.slice(8), n])
+    const oppLabel = (k: string) => k === 'flagged' ? 'Also a likely data issue'
+      : k.startsWith('type:') ? OPP_LABELS[k.slice(5)] ?? k.slice(5) : k.slice(8);
+    fillSelect(signalEl, 'All', [...sigs.entries()]
+      .map(([k, n]): [string, string, number] => [k, oppLabel(k), n])
       .sort((a, b) => (a[0] === 'flagged' ? 1 : b[0] === 'flagged' ? -1 : b[2] - a[2])));
   }
 }
@@ -351,6 +365,7 @@ function applyFilters(): void {
     if (sig) {
       if (tab === 'issues') return it.signals.includes(sig);
       if (sig === 'flagged') return it.issue_score != null;
+      if (sig.startsWith('type:')) return it.opportunity_type === sig.slice(5);
       return `refined:${it.refined}` === sig;
     }
     return true;
@@ -404,11 +419,16 @@ function explainerHtml(): string {
       ${context}${remnants}`;
   }
   const lt = doc.opportunities.land_total;
+  const o = doc.opportunities;
+  const extras = [
+    o.token_buildings ? `<b>${o.token_buildings}</b> <span class="rv-chip sig-token_building"><span class="rv-dot"></span>token buildings</span>, where the county values a standing building at next to nothing and puts the value on the land` : '',
+    o.storm_writedowns ? `<b>${o.storm_writedowns}</b> <span class="rv-chip sig-storm_writedown"><span class="rv-dot"></span>Helene write-downs</span>, where a building's value was written off after Hurricane Helene` : '',
+  ].filter(Boolean);
   return `
     <p>Parcels the map classes as <b>Vacant</b>, <b>Underdeveloped</b> (buildings worth little next to the land), or
       surface <b>Parking Lot</b>, with the <b>largest land value first</b>.</p>
-    <p>${doc.opportunities.eligible.toLocaleString('en-US')} parcels qualify${lt ? `, holding ${money(lt)} of land` : ''};
-      the list shows the top ${doc.opportunities.items.length}.</p>
+    <p>${o.eligible.toLocaleString('en-US')} parcels qualify${lt ? `, holding ${money(lt)} of land` : ''};
+      the list shows the top ${o.top_by_land ?? o.items.length} by land value${extras.length ? `, plus ${extras.join(', and ')}` : ''}.</p>
     <p class="rv-fine">Parcels that are also on the data-issues list are marked <span class="rv-chip sig-check_data"><span class="rv-dot"></span>Check the data</span>.
       A bad record can make a parcel look underused.</p>
     ${context}${remnants}`;
