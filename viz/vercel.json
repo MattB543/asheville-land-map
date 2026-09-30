@@ -16,6 +16,7 @@
     { "source": "/cities", "destination": "/cities.html" },
     { "source": "/app", "destination": "/app.html" },
     { "source": "/parking", "destination": "/parking.html" },
+    { "source": "/review", "destination": "/review.html" },
     { "source": "/cle-logo.svg", "destination": "/CLE-Logo.svg" },
     { "source": "/CLE-logo.svg", "destination": "/CLE-Logo.svg" }
   ],

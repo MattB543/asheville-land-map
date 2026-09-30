@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Parcel review - Civic Mapper</title>
+  <link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg">
+  <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="mask-icon" href="favicon.svg" color="#0f172a">
+  <script type="module" src="/src/analytics.ts"></script>
+  <link rel="stylesheet" href="/src/design-system.css">
+  <link rel="stylesheet" href="/src/components.css">
+  <style>
+    :root {
+      --rv-header-h: 56px;
+      --rv-side-w: 340px;
+      --rv-card-border: rgba(148, 163, 184, 0.24);
+      --rv-card-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+    }
+
+    body {
+      margin: 0;
+      background: #eef3f8;
+      color: var(--text-primary);
+    }
+
+    /* ---- Header (mirrors app.html's workspace header) ---- */
+    .rv-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      height: var(--rv-header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 18px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+    .rv-header-left, .rv-header-right { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .rv-logo-block {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+      flex: none; text-decoration: none;
+    }
+    .rv-logo-block img { height: 26px; display: block; }
+    .rv-back-link { font-size: 0.78rem; font-weight: 600; color: #64748b; white-space: nowrap; line-height: 1; }
+    .rv-logo-block:hover .rv-back-link { color: #0f172a; }
+    .rv-header-link {
+      font-size: 0.9rem; font-weight: 600; color: #334155; text-decoration: none; white-space: nowrap;
+    }
+    .rv-header-link:hover { color: #0f172a; }
+    .rv-cle-lockup { display: inline-flex; align-items: center; margin-left: 6px; }
+    .rv-cle-lockup img { height: 20px; display: block; }
+    .rv-cle-lockup:hover { opacity: 0.8; }
+
+    /* ---- Two-column shell: a sticky side column (title, tabs, filters, method) + the feed ---- */
+    .rv-shell {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 22px 18px 56px;
+      display: grid;
+      grid-template-columns: var(--rv-side-w) minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+    .rv-side {
+      position: sticky;
+      top: calc(var(--rv-header-h) + 18px);
+      max-height: calc(100vh - var(--rv-header-h) - 36px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 0 4px 2px 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+    }
+    .rv-kicker {
+      font-size: 0.74rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--color-primary-500);
+    }
+    .rv-title {
+      margin: 2px 0 0; font-size: 2rem; line-height: 1.05; font-weight: 800; color: #0f172a;
+      letter-spacing: -0.015em;
+    }
+    .rv-lede { margin: 6px 0 0; color: #475569; font-size: 0.93rem; line-height: 1.5; }
+    .rv-lede strong { color: #0f172a; }
+
+    /* Tabs: the app's pill tabs (dark active pill). */
+    .rv-tabs {
+      display: flex; gap: 4px; padding: 4px; border-radius: 18px;
+      background: rgba(15, 23, 42, 0.05);
+    }
+    .rv-tab {
+      flex: 1 1 0; min-width: 0;
+      border: none; background: transparent; color: #475569;
+      font: inherit; font-size: 0.88rem; font-weight: 700; line-height: 1.2;
+      padding: 8px 10px; border-radius: 14px; cursor: pointer; white-space: nowrap;
+      display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .rv-tab:hover:not(.is-active) { background: rgba(15, 23, 42, 0.06); color: #0f172a; }
+    .rv-tab.is-active { background: #0f172a; color: #fff; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18); }
+    .rv-tab:focus-visible { outline: 2px solid var(--color-primary-400); outline-offset: 2px; }
+    .rv-tab-count { font-size: 0.72rem; font-weight: 600; opacity: 0.7; }
+
+    .rv-panel {
+      background: #fff;
+      border: 1px solid var(--rv-card-border);
+      border-radius: 18px;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+      padding: 14px 16px;
+    }
+
+    /* Filters */
+    .rv-filters { display: grid; gap: 10px; }
+    .rv-field { display: grid; gap: 5px; }
+    .rv-field > span {
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #64748b;
+    }
+    .rv-input, .rv-select {
+      width: 100%;
+      font: inherit; font-size: 0.92rem; font-weight: 600; color: #0f172a;
+      padding: 9px 12px;
+      border: 1px solid rgba(148, 163, 184, 0.34);
+      border-radius: 11px;
+      background-color: #fff;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .rv-input {
+      padding-left: 36px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: left 12px center;
+    }
+    .rv-input::placeholder { color: #94a3b8; font-weight: 500; }
+    .rv-input:focus, .rv-select:focus {
+      outline: none;
+      border-color: var(--color-primary-400);
+      box-shadow: 0 0 0 3px rgba(117, 104, 189, 0.18);
+    }
+    .rv-filter-foot {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      font-size: 0.82rem; color: #64748b;
+    }
+    .rv-filter-foot strong { color: #0f172a; }
+    .rv-linkbtn {
+      border: none; background: none; padding: 0; font: inherit; font-size: 0.82rem; font-weight: 700;
+      color: var(--color-primary-600); cursor: pointer;
+    }
+    .rv-linkbtn:hover { text-decoration: underline; }
+    .rv-linkbtn[hidden] { display: none; }
+
+    /* "How this list is ranked" */
+    .rv-explainer summary {
+      list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+      font-weight: 800; font-size: 0.92rem; color: #0f172a;
+    }
+    .rv-explainer summary::-webkit-details-marker { display: none; }
+    .rv-explainer summary::after {
+      content: ""; width: 8px; height: 8px; flex: none; margin-right: 4px;
+      border-right: 2px solid #64748b; border-bottom: 2px solid #64748b;
+      transform: rotate(45deg) translateY(-2px); transition: transform 0.18s ease;
+    }
+    .rv-explainer[open] summary::after { transform: rotate(-135deg) translateY(-2px); }
+    .rv-explainer-body { margin-top: 10px; font-size: 0.86rem; line-height: 1.55; color: #475569; }
+    .rv-explainer-body p { margin: 0 0 8px; }
+    .rv-explainer-body ul { margin: 6px 0 8px; padding: 0; list-style: none; display: grid; gap: 6px; }
+    .rv-explainer-body li { display: flex; align-items: flex-start; gap: 8px; }
+    .rv-explainer-body li .rv-dot { margin-top: 6px; }
+    .rv-explainer-body li b { color: #0f172a; font-weight: 700; }
+    .rv-explainer-body .rv-li-count { margin-left: auto; font-variant-numeric: tabular-nums; color: #64748b; padding-left: 8px; }
+    .rv-explainer-body .rv-fine { font-size: 0.78rem; color: #64748b; }
+    .rv-dot { width: 8px; height: 8px; border-radius: 999px; flex: none; background: currentColor; }
+
+    /* ---- Feed ---- */
+    .rv-feed { display: grid; gap: 14px; }
+    .rv-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      gap: 18px;
+      padding: 18px 20px 16px 18px;
+      background: #fff;
+      border: 1px solid var(--rv-card-border);
+      border-radius: 20px;
+      box-shadow: var(--rv-card-shadow);
+      animation: rv-in 0.28s ease both;
+      container: rvcard / inline-size;
+    }
+    @keyframes rv-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .rv-card:hover { border-color: rgba(117, 104, 189, 0.4); }
+
+    .rv-thumb-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .rv-thumb {
+      position: relative;
+      width: 112px; height: 112px;
+      border-radius: 16px;
+      background:
+        linear-gradient(rgba(52, 40, 119, 0.05) 1px, transparent 1px) 0 0 / 14px 14px,
+        linear-gradient(90deg, rgba(52, 40, 119, 0.05) 1px, transparent 1px) 0 0 / 14px 14px,
+        #f6f5fb;
+      border: 1px solid rgba(52, 40, 119, 0.08);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .rv-thumb svg { width: 100%; height: 100%; display: block; }
+    .rv-thumb .rv-shape {
+      fill: rgba(75, 61, 156, 0.22); stroke: #342877; stroke-width: 1.6; stroke-linejoin: round;
+    }
+    .rv-rank {
+      position: absolute; top: -8px; left: -8px;
+      min-width: 32px; height: 32px; padding: 0 8px;
+      border-radius: 999px;
+      background: #342877; color: #fff;
+      font-size: 0.82rem; font-weight: 800; font-variant-numeric: tabular-nums;
+      display: inline-flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 14px rgba(52, 40, 119, 0.3);
+      border: 2px solid #fff;
+    }
+    .rv-thumb-cap { font-size: 0.72rem; color: #64748b; font-weight: 600; white-space: nowrap; }
+
+    .rv-body { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+    .rv-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .rv-idline { min-width: 0; }
+    .rv-pid {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--font-mono); font-size: 1.02rem; font-weight: 700; color: #0f172a;
+      letter-spacing: 0.01em; word-break: break-all;
+    }
+    .rv-copy {
+      border: none; background: transparent; padding: 3px; border-radius: 6px; cursor: pointer; color: #94a3b8;
+      display: inline-flex;
+    }
+    .rv-copy:hover { color: var(--color-primary-600); background: var(--color-primary-50); }
+    .rv-copy svg { width: 14px; height: 14px; }
+    .rv-copy.is-done { color: #059669; }
+    .rv-class { margin-top: 3px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.88rem; color: #475569; }
+    .rv-class .rv-sep { color: #cbd5e1; }
+    .rv-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px;
+      letter-spacing: 0.02em;
+    }
+    .rv-tag--Vacant { background: #ffedd5; color: #9a3412; }
+    .rv-tag--Underdeveloped { background: #dbeafe; color: #1e3a8a; }
+    .rv-tag--Parking { background: #ccfbf1; color: #115e59; }
+    .rv-tag--est { background: #f1f5f9; color: #475569; }
+
+    /* Score (issues) / land value (opportunities) in the card's top-right. */
+    .rv-metric { flex: none; text-align: right; }
+    .rv-metric-val { font-size: 1.35rem; font-weight: 800; color: #0f172a; line-height: 1; font-variant-numeric: tabular-nums; }
+    .rv-metric-lbl { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: #64748b; margin-top: 4px; }
+    .rv-meter { width: 88px; height: 5px; border-radius: 999px; background: #eef2f7; margin: 7px 0 0 auto; overflow: hidden; }
+    .rv-meter > i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f59e0b, #dc2626); }
+
+    /* Reasons */
+    /* Reasons: chip column + sentence column, aligned within a card. */
+    .rv-reasons {
+      display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px 10px; align-items: start;
+      margin: 0; padding: 0; list-style: none;
+      font-size: 0.9rem; line-height: 1.45; color: #1e293b;
+    }
+    .rv-reason { display: contents; }
+    .rv-reason .rv-chip { justify-self: start; }
+    /* A narrower card (tablet widths) stacks each chip above its sentence instead of squeezing it. */
+    @container rvcard (max-width: 700px) {
+      .rv-reasons { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+      .rv-reason > span:last-child { margin-bottom: 6px; }
+    }
+    .rv-chip {
+      flex: none; display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.01em;
+      padding: 3px 9px; border-radius: 999px; white-space: nowrap; margin-top: 1px;
+    }
+    .rv-chip .rv-dot { width: 6px; height: 6px; }
+    .sig-zero_land { --c-bg: #fee2e2; --c-fg: #b91c1c; }
+    .sig-sliver { --c-bg: #ffe4e6; --c-fg: #be123c; }
+    .sig-land_psf_high { --c-bg: #ede9fe; --c-fg: #5b21b6; }
+    .sig-land_psf_low { --c-bg: #e0e7ff; --c-fg: #3730a3; }
+    .sig-label_vacant_built, .sig-label_parking_built, .sig-label_built_empty { --c-bg: #fef3c7; --c-fg: #92400e; }
+    .sig-estimate_off, .sig-estimate_floor { --c-bg: #e2e8f0; --c-fg: #334155; }
+    .sig-vacant { --c-bg: #ffedd5; --c-fg: #9a3412; }
+    .sig-underdeveloped { --c-bg: #dbeafe; --c-fg: #1e3a8a; }
+    .sig-parking { --c-bg: #ccfbf1; --c-fg: #115e59; }
+    .sig-check_data { --c-bg: #fef3c7; --c-fg: #92400e; }
+    .rv-chip { background: var(--c-bg, #f1f5f9); color: var(--c-fg, #334155); }
+    .rv-explainer-body .rv-dot { color: var(--c-fg, #64748b); }
+
+    /* Key numbers */
+    /* Wrapping row: 5 across on a wide card, 2-2-1 on a phone, and the last row always fills. */
+    .rv-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1px;
+      margin: 0;
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(148, 163, 184, 0.22);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+    }
+    .rv-stat { flex: 1 1 118px; background: #f8fafc; padding: 9px 11px; min-width: 0; }
+    .rv-stat dt {
+      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #64748b;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .rv-stat dd {
+      margin: 3px 0 0; font-size: 1rem; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .rv-stat small {
+      display: block; margin-top: 1px; font-size: 0.74rem; font-weight: 600; color: #64748b;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .rv-stat--flag dd { color: #b91c1c; }
+    .rv-ratio {
+      display: inline-block; margin-left: 4px; font-size: 0.7rem; font-weight: 800; padding: 0 6px;
+      border-radius: 999px; vertical-align: 2px; background: #f1f5f9; color: #475569;
+    }
+    .rv-ratio--hi { background: #ede9fe; color: #5b21b6; }
+    .rv-ratio--lo { background: #e0e7ff; color: #3730a3; }
+
+    .rv-note {
+      display: flex; gap: 8px; align-items: flex-start;
+      font-size: 0.84rem; line-height: 1.5; color: #475569;
+      background: var(--color-primary-50); border: 1px solid rgba(117, 104, 189, 0.16);
+      border-radius: 12px; padding: 8px 11px;
+    }
+    .rv-note svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: var(--color-primary-500); }
+
+    .rv-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .rv-actions .btn { text-decoration: none; font-weight: 700; border-radius: 10px; padding: 6px 12px; font-size: 0.8rem; }
+    .rv-actions .btn svg { width: 14px; height: 14px; }
+    .rv-actions .btn-ghost { background: #fff; }
+
+    .rv-more-wrap { display: flex; justify-content: center; padding: 18px 0 4px; }
+    .rv-more-wrap[hidden] { display: none; }
+    .rv-sentinel { height: 1px; }
+
+    /* Empty / error / loading */
+    .rv-empty {
+      text-align: center; padding: 48px 24px; background: #fff; border-radius: 20px;
+      border: 1px dashed rgba(148, 163, 184, 0.5); color: #475569;
+    }
+    .rv-empty h2 { margin: 0 0 6px; font-size: 1.2rem; color: #0f172a; }
+    .rv-empty p { margin: 0 auto 16px; max-width: 46ch; line-height: 1.5; font-size: 0.93rem; }
+    .rv-empty[hidden] { display: none; }
+    .rv-empty .btn { text-decoration: none; }
+    body.rv-no-feed .rv-tabs, body.rv-no-feed .rv-filters { display: none; }
+    .rv-skel {
+      height: 196px; border-radius: 20px; border: 1px solid var(--rv-card-border);
+      background: linear-gradient(100deg, #fff 30%, #f3f5f9 50%, #fff 70%) 0 0 / 300% 100%;
+      animation: rv-shimmer 1.3s linear infinite;
+    }
+    @keyframes rv-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .rv-card, .rv-skel { animation: none; }
+    }
+
+    @media (max-width: 900px) {
+      .rv-shell { grid-template-columns: 1fr; padding: 16px 12px 40px; gap: 16px; }
+      .rv-side { position: static; max-height: none; overflow: visible; }
+      .rv-title { font-size: 1.7rem; }
+    }
+
+    @media (max-width: 720px) {
+      .rv-header { padding: 0 12px; }
+      .rv-header-right .rv-hide-sm { display: none; }
+      .rv-card { grid-template-columns: 76px minmax(0, 1fr); gap: 12px; padding: 14px 14px 14px 12px; }
+      .rv-thumb { width: 76px; height: 76px; border-radius: 12px; }
+      .rv-rank { min-width: 28px; height: 28px; font-size: 0.76rem; }
+      .rv-head { flex-direction: column; gap: 8px; }
+      .rv-metric { text-align: left; display: flex; align-items: baseline; gap: 8px; }
+      .rv-metric-lbl { margin: 0; }
+      .rv-meter { display: none; }
+      .rv-reasons, .rv-stats, .rv-note, .rv-actions { grid-column: 1 / -1; }
+      .rv-body { display: contents; }
+      .rv-card > .rv-thumb-col { grid-row: 1; }
+      .rv-card .rv-head { grid-column: 2; grid-row: 1; }
+      .rv-reasons { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+      .rv-reason > span:last-child { margin-bottom: 6px; }
+      .rv-tab { font-size: 0.82rem; padding: 8px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="rv-header">
+    <div class="rv-header-left">
+      <a id="backToMap" href="/app.html" class="rv-logo-block" aria-label="Back to the map">
+        <img src="/logo.svg" alt="Civic Mapper">
+        <span class="rv-back-link">&larr; Back to the map</span>
+      </a>
+    </div>
+    <div class="rv-header-right">
+      <a href="/cities.html" class="rv-header-link">All cities</a>
+      <a href="https://github.com/Center-for-Land-Economics/civicmapper" target="_blank" rel="noopener" class="rv-header-link rv-hide-sm" title="Civic Mapper is open source">GitHub</a>
+      <a href="https://landeconomics.org" target="_blank" rel="noopener" class="rv-cle-lockup rv-hide-sm" aria-label="Center for Land Economics">
+        <img src="/cle-logo-2color.svg" alt="Center for Land Economics">
+      </a>
+    </div>
+  </header>
+
+  <main class="rv-shell">
+    <aside class="rv-side" aria-label="Review list controls">
+      <div>
+        <div class="rv-kicker" id="cityLabel">&nbsp;</div>
+        <h1 class="rv-title">Parcel review</h1>
+        <p class="rv-lede" id="lede">Loading the review feed&hellip;</p>
+      </div>
+
+      <nav class="rv-tabs" role="tablist" aria-label="Review lists">
+        <button class="rv-tab is-active" type="button" role="tab" id="tab-issues" data-tab="issues" aria-selected="true" aria-controls="feed">
+          <span>Likely data issues</span><span class="rv-tab-count" id="count-issues">&nbsp;</span>
+        </button>
+        <button class="rv-tab" type="button" role="tab" id="tab-opportunities" data-tab="opportunities" aria-selected="false" aria-controls="feed">
+          <span>Biggest opportunities</span><span class="rv-tab-count" id="count-opportunities">&nbsp;</span>
+        </button>
+      </nav>
+
+      <section class="rv-panel rv-filters" aria-label="Filters">
+        <label class="rv-field">
+          <span>Parcel ID</span>
+          <input id="fSearch" class="rv-input" type="search" placeholder="Search parcel ID&hellip;" autocomplete="off" spellcheck="false" inputmode="search" />
+        </label>
+        <label class="rv-field">
+          <span>Category</span>
+          <select id="fCategory" class="rv-select"></select>
+        </label>
+        <label class="rv-field">
+          <span id="fSignalLabel">Signal</span>
+          <select id="fSignal" class="rv-select"></select>
+        </label>
+        <div class="rv-filter-foot">
+          <span id="resultCount">&nbsp;</span>
+          <button type="button" class="rv-linkbtn" id="fReset" hidden>Clear filters</button>
+        </div>
+      </section>
+
+      <details class="rv-panel rv-explainer" id="explainer" open>
+        <summary>How this list is ranked</summary>
+        <div class="rv-explainer-body" id="explainerBody"></div>
+      </details>
+    </aside>
+
+    <section aria-label="Parcels">
+      <div id="feed" class="rv-feed" role="tabpanel" aria-labelledby="tab-issues">
+        <div class="rv-skel"></div><div class="rv-skel"></div><div class="rv-skel"></div>
+      </div>
+      <div id="sentinel" class="rv-sentinel" aria-hidden="true"></div>
+      <div class="rv-more-wrap" id="moreWrap" hidden>
+        <button type="button" class="btn btn-ghost" id="moreBtn">Show more</button>
+      </div>
+      <div class="rv-empty" id="empty" hidden>
+        <h2 id="emptyTitle">No review feed for this city yet</h2>
+        <p id="emptyText">This city&rsquo;s parcels haven&rsquo;t been scored for review yet. The map itself is unaffected.</p>
+        <a class="btn btn-primary" id="emptyAction" href="/app.html">Back to the map</a>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initCleFooter } from '/src/cle-footer.ts';
+    initCleFooter();
+  </script>
+  <script type="module" src="/src/review.ts"></script>
+</body>
+</html>

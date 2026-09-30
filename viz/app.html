@@ -170,6 +170,35 @@
       text-overflow: ellipsis;
     }
 
+    /* City name + the "Review list" link on one line (the name truncates first). */
+    .view-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+    }
+    .view-title-row .view-city-name { flex: 1 1 auto; min-width: 0; }
+    .view-review-link {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(117, 104, 189, 0.24);
+      background: var(--color-primary-50);
+      color: var(--color-primary-600);
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .view-review-link:hover { background: var(--color-primary-100); border-color: rgba(117, 104, 189, 0.4); }
+    .view-review-link svg { width: 14px; height: 14px; display: block; }
+    .view-review-link[hidden] { display: none; }
+
     /* Thin divider separating the brand logo from the page identity (back-link + city name). */
     .workspace-header-sep {
       width: 1px;
@@ -1466,7 +1495,15 @@
            up to the same top line. --view-header-h (set by a ResizeObserver in main.ts) pads the
            sidebars below it. -->
       <div class="view-header">
-        <div class="view-city-name" id="cityName">Loading...</div>
+        <div class="view-title-row">
+          <div class="view-city-name" id="cityName">Loading...</div>
+          <!-- Parcel review list (review.html): shown by main.ts when the city has a review feed. -->
+          <a id="reviewListLink" class="view-review-link" href="/review.html" hidden
+             title="Parcels worth a second look: likely data issues and the biggest opportunities">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg>
+            Review list
+          </a>
+        </div>
         <nav class="workspace-tabs" aria-label="Analysis views">
           <button id="tab-land" class="workspace-tab is-active" type="button" data-view="land">Value</button>
           <button id="tab-underutilized" class="workspace-tab" type="button" data-view="underutilized">Underused</button>

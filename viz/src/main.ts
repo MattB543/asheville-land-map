@@ -552,6 +552,13 @@ let previousFieldBeforeSmooth: string | null = null;
 
 cityNameEl && (cityNameEl.textContent = formatCityLabel(SELECTED_CITY));
 
+// "Review list" entry point (review.html) next to the city name, for cities with a review feed.
+const reviewListLink = document.getElementById('reviewListLink') as HTMLAnchorElement | null;
+if (reviewListLink && CITIES[SELECTED_CITY]?.reviewFilename) {
+  reviewListLink.href = `/review.html?city=${encodeURIComponent(SELECTED_CITY)}`;
+  reviewListLink.hidden = false;
+}
+
 function normalizeRampKey(key: string | null | undefined): string {
   if (!key) return DEFAULT_RAMP_KEY;
   if (key === LEGACY_DEFAULT_RAMP_KEY) return DEFAULT_RAMP_KEY;

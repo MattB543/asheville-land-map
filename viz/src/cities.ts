@@ -51,6 +51,11 @@ export interface CityDef {
   parkingFilename?: string;
   /** Optional cache-busting token appended to parking dataset requests. */
   parkingVersion?: string;
+  /** Parcel review feed JSON (top-level data file, built by data/scripts/build_review_feed.py) that
+   *  review.html lists; leave undefined when the city has none. */
+  reviewFilename?: string;
+  /** Cache-busting token appended to the review feed request. Bump on every re-upload. */
+  reviewVersion?: string;
   /** Field holding the refined development category used for primary coloring/filtering. */
   devCategoryField: string;
   /** Field holding the original/raw land use category from the source data. */

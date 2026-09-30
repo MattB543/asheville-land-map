@@ -307,6 +307,17 @@ export async function resolveLocalFirst(localPath: string | null, remoteUrl: str
   return remoteUrl;
 }
 
+/** Parcel review feed (review.html) for the current city: a small top-level JSON built offline by
+ *  data/scripts/build_review_feed.py. All null when the city has no reviewFilename. Deployed hosts
+ *  fetch it through the API proxy like every other data file; `npm run dev` prefers a local copy in
+ *  viz/public/ (resolveLocalFirst) and otherwise falls back to the blob via the /data proxy. */
+export const REVIEW_FILENAME: string | null = _city.reviewFilename ?? null;
+export const REVIEW_DATASET_URL: string | null = REVIEW_FILENAME
+  ? appendVersionParam(isDeployed ? `${API_BASE}/data/${REVIEW_FILENAME}` : `${PARQUET_BASE_URL}/${REVIEW_FILENAME}`,
+      _city.reviewVersion)
+  : null;
+export const LOCAL_REVIEW_PATH: string | null = IS_DEV && REVIEW_FILENAME ? `/${REVIEW_FILENAME}` : null;
+
 /** Full URL to the per-city land-totals JSON (parking-share-of-taxable-land denominators), or
  *  null. This is a small parcel-derived sidecar (citywide + per-region NON-EXEMPT land value)
  *  the Parking page fetches so it can show parking value as a % of taxable land value without
