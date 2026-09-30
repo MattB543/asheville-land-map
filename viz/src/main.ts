@@ -618,8 +618,7 @@ function initShareButton() {
   const defaultLabel = btn.textContent || 'Share';
   btn.addEventListener('click', async () => {
     const url = window.location.href;
-    const cityLabel = (document.getElementById('cityName')?.textContent || 'city').trim();
-    const title = `Civic Mapper — ${cityLabel}`;
+    const title = document.title;   // "Asheville Land Map | AVL GO"
     if (navigator.share) {
       try {
         await navigator.share({ title, url });
@@ -1045,8 +1044,9 @@ function ensureRenderToast() {
   renderToastEl = document.createElement('div');
   renderToastEl.style.cssText = `
     position:absolute; top:12px; left:50%; transform:translateX(-50%);
-    background:#111; color:#fff; padding:6px 10px; border-radius:999px;
-    font-size:12px; opacity:0; transition:opacity .2s; z-index:25; pointer-events:none;
+    background:var(--avl-gray-900); color:var(--avl-on-accent); padding:6px 12px;
+    border-radius:var(--avl-radius-full); box-shadow:var(--avl-shadow-lg);
+    font-size:var(--avl-text-xs); font-weight:500; opacity:0; transition:opacity .2s; z-index:25; pointer-events:none;
   `;
   renderToastEl.textContent = 'Geometry is rendering...';
   document.body.append(renderToastEl);
@@ -3335,7 +3335,7 @@ function renderColorLegend(
   stripWrap.style.cssText = 'position:relative;';   // hosts the swatch strip + the drag value tooltip
 
   const swatches = document.createElement('div');
-  swatches.style.cssText = `position:relative; display:flex; height:${interactive ? 20 : 12}px; border-radius:3px; overflow:hidden; border:1px solid rgba(255,255,255,0.25);` + (interactive ? ' cursor:ew-resize;' : '');
+  swatches.style.cssText = `position:relative; display:flex; height:${interactive ? 20 : 12}px; border-radius:var(--avl-radius-sm); overflow:hidden; border:1px solid var(--avl-border);` + (interactive ? ' cursor:ew-resize;' : '');
   const cells: HTMLDivElement[] = [];
   for (let i = 0; i < ramp.length; i++) {
     const cell = document.createElement('div');
@@ -3349,7 +3349,7 @@ function renderColorLegend(
   if (interactive) {
     // Live value tooltip under the dragged handle (hidden when settled).
     const tip = document.createElement('div');
-    tip.style.cssText = 'position:absolute; top:100%; margin-top:3px; transform:translateX(-50%); padding:1px 6px; font-size:11px; font-weight:600; white-space:nowrap; background:rgba(15,23,42,0.92); color:#fff; border-radius:4px; pointer-events:none; display:none; z-index:5;';
+    tip.style.cssText = 'position:absolute; top:100%; margin-top:4px; transform:translateX(-50%); padding:2px 8px; font-size:var(--avl-text-2xs); font-weight:500; white-space:nowrap; background:var(--avl-bg-tooltip); color:var(--avl-on-accent); border-radius:var(--avl-radius-sm); box-shadow:var(--avl-shadow-lg); pointer-events:none; display:none; z-index:5;';
     stripWrap.appendChild(tip);
 
     const applyWidths = () => {
@@ -3361,7 +3361,7 @@ function renderColorLegend(
     const GAP = 0.015; // min spacing between adjacent handles
     for (let i = 0; i < need; i++) {
       const h = document.createElement('div');
-      h.style.cssText = `position:absolute; top:-2px; bottom:-2px; width:9px; margin-left:-4.5px; left:${fr[i] * 100}%; background:rgba(255,255,255,0.9); border:1px solid rgba(15,23,42,0.55); border-radius:2px; cursor:ew-resize; box-shadow:0 1px 3px rgba(0,0,0,0.4);`;
+      h.style.cssText = `position:absolute; top:-2px; bottom:-2px; width:9px; margin-left:-4.5px; left:${fr[i] * 100}%; background:rgba(255,255,255,0.95); border:1px solid var(--avl-gray-500); border-radius:2px; cursor:ew-resize; box-shadow:0 1px 3px rgba(0,0,0,0.4);`;
       h.title = 'Drag to move this colour boundary';
       const idx = i;
       const showTip = (f: number) => { tip.textContent = handles!.formatValue(f); tip.style.left = `${f * 100}%`; tip.style.display = 'block'; };
@@ -3399,7 +3399,7 @@ function renderColorLegend(
 
   // Low → high value labels in the field's units.
   const scale = document.createElement('div');
-  scale.style.cssText = 'display:flex; justify-content:space-between; font-size:11px; color:rgba(255,255,255,0.72);';
+  scale.style.cssText = 'display:flex; justify-content:space-between; font-size:var(--avl-text-xs); line-height:var(--avl-lh-xs); color:var(--avl-text-muted); font-variant-numeric:tabular-nums;';
   const loEl = document.createElement('span'); loEl.textContent = formatLegendValue(field, lo);
   const hiEl = document.createElement('span'); hiEl.textContent = formatLegendValue(field, hi);
   scale.appendChild(loEl); scale.appendChild(hiEl);
@@ -3575,14 +3575,11 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
     if (!keysByLabel.has(label)) keysByLabel.set(label, k);
   }
 
+  // Popup styling lives in components.css (.gvw-pop-*); only the data goes in the markup.
   const rowHtml = (label: string, printable: string, note = '') => `
       <tr>
-        <td style="padding:2px 6px; overflow-wrap:anywhere;">
-          <code style="white-space:normal;">${label}</code>${note}
-        </td>
-        <td style="padding:2px 6px; text-align:right; white-space:nowrap;">
-          ${printable}
-        </td>
+        <td class="gvw-pop-label">${label}${note}</td>
+        <td class="gvw-pop-value">${printable}</td>
       </tr>`;
 
   // Derive parcel LAND size on demand: land area = land value ÷ land-value-per-sqft. Keyed off the
@@ -3603,11 +3600,9 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
     + 'value is estimated from similar nearby parcels. Treat the land/improvement split as approximate.';
   const ESTIMATED_KEYS = new Set([...LAND_VALUE_KEYS, 'land_value_per_sqft', 'REALLANDVA_per_sqft',
     'improvement_value', 'REALIMPROV', 'improvement_value_per_sqft', 'REALIMPROV_per_sqft']);
-  const estimateMark = `<span title="${ESTIMATE_NOTE}" style="margin-left:4px; color:#b45309; `
-    + `font-size:11px; font-weight:600; cursor:help; border-bottom:1px dotted currentColor;">estimated</span>`;
+  const estimateMark = `<span class="gvw-pop-est" title="${ESTIMATE_NOTE}">estimated</span>`;
   const estimateBanner = landEstimated
-    ? `<div role="note" style="margin:0 0 6px; padding:6px 8px; border-radius:6px; background:#fff7e6;
-          border:1px solid #f5c26b; color:#7a4b00; font-size:12px;">
+    ? `<div role="note" class="gvw-pop-note">
         <strong>Estimated land value.</strong> ${ESTIMATE_NOTE}
        </div>`
     : '';
@@ -3646,40 +3641,37 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
     : `<div><strong>Extrusion height</strong>: —</div>`;
 
   const errMsg = currentModeErrorMessage(props);
-  const errRow = errMsg ? `<div style="margin-top:4px;color:#b00020;">${errMsg}</div>` : '';
+  const errRow = errMsg ? `<div class="gvw-pop-error">${errMsg}</div>` : '';
 
   const linkButton = parcelLink
-    ? `<div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
-        <a href="${parcelLink}" target="_blank" rel="noopener"
-           style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px;
-                  background:#eef3ff; color:#1b4dd8; text-decoration:none; border-radius:6px;
-                  font-weight:600; font-size:12px;">
-          <span>View Parcel</span><span aria-hidden="true" style="font-size:12px;">↗</span>
+    ? `<div class="gvw-pop-actions">
+        <a class="gvw-pop-link" href="${parcelLink}" target="_blank" rel="noopener">
+          <span>View Parcel</span><span aria-hidden="true">↗</span>
         </a>
        </div>`
     : '';
 
   const underSummary = currentTab === 'under'
-    ? `<div style="display:grid; gap:4px; margin-bottom:8px;">
-        <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; color:#64748b;">Opportunity parcel</div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-          ${opportunityType ? `<span style="display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; background:#eef2ff; color:#1e3a8a; font-weight:700;">${opportunityType}</span>` : ''}
-          ${landValuePerSqft != null ? `<span style="font-weight:700; color:#0f172a;">${fmtCurrencyPerSqft(landValuePerSqft)}</span>` : ''}
+    ? `<div class="gvw-pop-under">
+        <div class="gvw-pop-kicker">Opportunity parcel</div>
+        <div class="gvw-pop-under-row">
+          ${opportunityType ? `<span class="gvw-pop-chip">${opportunityType}</span>` : ''}
+          ${landValuePerSqft != null ? `<span class="gvw-pop-figure">${fmtCurrencyPerSqft(landValuePerSqft)}</span>` : ''}
         </div>
       </div>`
     : '';
 
   return `
-    <div class="gvw-pop" style="max-width:min(92vw, 460px); font-size:12.5px; line-height:1.35;">
+    <div class="gvw-pop">
       ${linkButton}
-      ${title ? `<div style="font-weight:600;margin-bottom:4px; overflow-wrap:anywhere;">${title}</div>` : ''}
+      ${title ? `<div class="gvw-pop-title">${title}</div>` : ''}
       ${estimateBanner}
       ${underSummary}
       ${errRow}
-      <div style="height:1px;background:#eee;margin:6px 0"></div>
-      <div style="font-weight:600;margin-bottom:2px">Loaded fields</div>
-      <div style="overflow:auto;">
-        <table style="width:100%; border-collapse:collapse; font-size:12px; table-layout:fixed;">
+      <div class="gvw-pop-divider"></div>
+      <div class="gvw-pop-section">Loaded fields</div>
+      <div class="gvw-pop-scroll">
+        <table class="gvw-pop-table" style="table-layout:fixed;">
           <colgroup>
             <col span="1" style="width:65%">
             <col span="1" style="width:35%">
