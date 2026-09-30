@@ -11,15 +11,15 @@
     "Excluded as non-land: state-assessed utility networks (800, 81x, 82x, 831, 836, 853) and right-of-way (305 road, 842 railroad). Cell-tower sites (830) and waste disposal / scrap yards (850/852) are ordinary taxable property and kept.",
     "Land area is the geodesic polygon area: the source Acreage is on a 0.01-acre grid (up to ~10% rounding on small lots) and agrees with the polygon at median ratio 1.0001.",
     "link is Buncombe's Spatialest property record card (per-parcel deep link supplied by the source layer's PropCard field). For a merged condo/leasehold lot it opens the PARENT lot, whose card shows only the lot's own value — record_note says so.",
-    "Parking: OSM-only extraction (parking_lot_extraction.py --osm-only, 2026-09-29): 450 lots, 298.5 acres, ~$207M estimated land value; the NAIP+ML satellite pass has not been run, so suburban/commercial lots missing from OSM are undercounted."
+    "Parking: OSM-only extraction (parking_lot_extraction.py --osm-only, 2026-09-30): 436 lots, 294.8 acres, ~$206M estimated land value; the NAIP+ML satellite pass has not been run, so suburban/commercial lots missing from OSM are undercounted."
   ],
   "displayName": "Asheville",
   "state": "nc",
   "filename": "asheville-nc-parcels.parquet",
   "pmtilesFilename": "asheville-nc-parcels.pmtiles",
-  "pmtilesVersion": "2026-09-29b",
+  "pmtilesVersion": "2026-09-30a",
   "parkingFilename": "asheville-nc-parking-lots.parquet",
-  "parkingVersion": "2026-09-29b-osm",
+  "parkingVersion": "2026-09-30a-osm",
   "hideRemnants": true,
   "devCategoryField": "property_land_use_refined",
   "origCategoryField": "property_land_use_category",
