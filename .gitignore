@@ -20,7 +20,35 @@ analytics/exports/
 analytics/dashboard.html
 data/.venv/*
 data/jurisidictions/.ipynb_checkpoints/*
-.claude/
+.claude/settings.local.json
+data/parking/*
+
+*.parquet
+data/scripts/__pycache__/
+*.kml
+
+# Tiles, mesh exports & other large binary blobs — never commit (served from blob storage /
+# generated locally). Small text sidecars like *-metadata.json stay tracked.
+*.pmtiles
+*.mbtiles
+*.stl
+
+# Local diagnostic/scratch scripts (underscore-prefixed) in data root
+data/_*
+
+# Python bytecode cache (anywhere)
+__pycache__/
+
+research/2412.13179v1.pdf
+
+data/jurisidictions/copenhagen-vurdst-access-email.md
+.npm-cache/
+
+# macOS folder junk + Vite dep cache — never commit
+.DS_Store
+.vite/
+
+claude/
 
 # Vercel CLI project link and pulled env (local only)
 .vercel
