@@ -96,8 +96,14 @@ export const CITIES: Record<CityKey, CityDef> = {};
 /** [lng, lat] map center per city. */
 export const CITY_COORDS: Record<CityKey, [number, number]> = {};
 
+// Optional build-time allowlist (VITE_CITY_ALLOWLIST=asheville,foo) for a deployment that only hosts
+// some cities' data, e.g. a fork whose data isn't on the maintainers' blob. Unset = all cities.
+const CITY_ALLOWLIST = String((import.meta as any).env?.VITE_CITY_ALLOWLIST ?? '')
+  .split(',').map((k) => k.trim().toLowerCase()).filter(Boolean);
+
 for (const [path, mod] of Object.entries(cityModules)) {
   const key = path.replace('./cities/', '').replace('.json', '');
+  if (CITY_ALLOWLIST.length && !CITY_ALLOWLIST.includes(key)) continue;
   const { coords, ...def } = mod.default;
   if (!Array.isArray(coords) || coords.length !== 2) {
     throw new Error(`cities/${key}.json is missing a valid coords [lng, lat] pair`);
@@ -118,6 +124,9 @@ export const STATE_NAMES: Record<string, string> = {
 /** All valid city keys. */
 export const CITY_KEYS = Object.keys(CITIES) as CityKey[];
 
+/** Fallback for a missing/unknown ?city= — South Bend, unless the allowlist excludes it. */
+export const DEFAULT_CITY: CityKey = 'southbend' in CITIES ? 'southbend' : CITY_KEYS[0];
+
 /** Canonical UI label for a city, e.g. "Fort Collins, CO". */
 export function formatCityLabel(cityKey: CityKey): string {
   const city = CITIES[cityKey];
@@ -127,15 +136,15 @@ export function formatCityLabel(cityKey: CityKey): string {
 /**
  * Resolve a raw URL param value to a CityKey.
  * Handles aliases (e.g. "st-paul" → "stpaul") and case-insensitivity.
- * Returns "southbend" if the value is missing or unrecognised.
+ * Returns DEFAULT_CITY if the value is missing or unrecognised.
  */
 export function resolveCityKey(raw: string | null | undefined): CityKey {
   const c = (raw ?? '').toLowerCase().trim();
-  if (!c) return 'southbend';
+  if (!c) return DEFAULT_CITY;
   if (c in CITIES) return c as CityKey;
   // Check aliases
   for (const [key, def] of Object.entries(CITIES)) {
     if (def.aliases?.includes(c)) return key as CityKey;
   }
-  return 'southbend';
+  return DEFAULT_CITY;
 }

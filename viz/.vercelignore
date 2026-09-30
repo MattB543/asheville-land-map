@@ -1,0 +1,6 @@
+node_modules
+dist
+.env*
+# Parcel data is served from Vercel Blob (VITE_DEFAULT_DATASET_URL), not bundled into the site.
+public/*.parquet
+public/parking

@@ -1,5 +1,5 @@
 import { API_BASE as ENV_API_BASE } from './env';
-import { CITIES, resolveCityKey } from './cities';
+import { CITIES, DEFAULT_CITY, resolveCityKey } from './cities';
 
 // Repo migrated to Center-for-Land-Economics/civicmapper (2026-07-07).
 
@@ -178,10 +178,10 @@ function getCityFromUrl() {
     // to the default. (Computed locally; the exported `isDeployed` const isn't defined yet here.)
     const host = u.hostname;
     const deployed = host !== '' && !host.includes('localhost') && !host.includes('127.0.0.1');
-    if (deployed && (CITIES[key] as any)?.devOnly) return 'southbend' as const;
+    if (deployed && (CITIES[key] as any)?.devOnly) return DEFAULT_CITY;
     return key;
   } catch {
-    return 'southbend' as const;
+    return DEFAULT_CITY;
   }
 }
 
