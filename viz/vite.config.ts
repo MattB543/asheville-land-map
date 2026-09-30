@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import { resolve } from 'path';
-import { existsSync, readFileSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 
 // VITE_CITY_ALLOWLIST (src/cities.ts) trims a deployment to some cities. Check it here so a typo
 // fails the build instead of shipping a site with no cities, or one that defaults to a devOnly city.
@@ -8,8 +8,11 @@ function checkCityAllowlist(mode: string): void {
   const raw = process.env.VITE_CITY_ALLOWLIST ?? loadEnv(mode, resolve(__dirname, 'env')).VITE_CITY_ALLOWLIST ?? '';
   const keys = raw.split(',').map((k) => k.trim().toLowerCase()).filter(Boolean);
   if (!keys.length) return;
-  const file = (k: string) => resolve(__dirname, 'src/cities', `${k}.json`);
-  const unknown = keys.filter((k) => !existsSync(file(k)));
+  // Exact city keys (JSON basenames), not paths: '../cities/asheville' must not pass.
+  const dir = resolve(__dirname, 'src/cities');
+  const known = new Set(readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5)));
+  const file = (k: string) => resolve(dir, `${k}.json`);
+  const unknown = keys.filter((k) => !known.has(k));
   if (unknown.length) throw new Error(`VITE_CITY_ALLOWLIST names unknown cities: ${unknown.join(', ')}`);
   if (keys.every((k) => JSON.parse(readFileSync(file(k), 'utf8')).devOnly))
     throw new Error('VITE_CITY_ALLOWLIST has only devOnly cities; a deployed build would have no default city');
