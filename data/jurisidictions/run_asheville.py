@@ -69,9 +69,11 @@ Notes:
   exclusion), VET (disabled veteran), DIS (disabled), HIS (historic 50% deferral), BLD
   (builder inventory), BRF (brownfield), and EX2 (pollution-abatement/recycling-equipment
   exclusion on otherwise taxable industrial sites — New Belgium Brewing, two scrap yards).
-  UNRESOLVED: EX1 (Givens Estates, 5 parcels, $192.5M) and EX4 (Deerfield, 28 parcels, $142.2M)
-  are CCRCs, which G.S. 105-278.6A lets be excluded in part (20/40/60/80%) as well as in full;
-  the public layer has no exempt amount, so they are treated as fully exempt.
+  EX1 (Givens Estates, 5 parcels, $191.5M) and EX4 (Deerfield, 28 parcels, $142.2M) are CCRCs,
+  which G.S. 105-278.6A can exclude in part (20/40/60/80%) as well as in full. The layer has no
+  exempt amount, but the county's tax bills (tax.buncombenc.gov, checked 2026-09-30) do: Givens'
+  parcels have never been billed, and Deerfield's 2026 bills exempt all but $78,600 of $142.2M.
+  Both are treated as fully exempt.
   TaxValue can NOT be used as an exemption signal: in this layer it equals TotalMarketValue
   even on fully exempt parcels. A merged NMP group is exempt iff its parent LAND is (so the
   airport's taxable hangar leaseholds do not drag the 567-acre exempt airfield into the map);
@@ -85,9 +87,13 @@ Notes:
 - Vacant: the shared classifier forces "Vacant" onto every vacant-CLASS parcel. Here a stale
   vacant class does not beat building evidence (a $441,600 house on a class-311 "residential
   building lot"): vacant-class parcels with improvement value are re-judged by the land-share
-  rule, those flagged Improved=Y with no improvement value yet are left unclassified, and
-  parcels with no valuation at all are unknown rather than vacant — except assessor-designated
-  vacant land, which stays Vacant.
+  rule, and those flagged Improved=Y with no improvement value yet are left unclassified.
+- NOT SHIPPED: parcels with no valuation at all ($0 land and $0 improvements) — HOA common
+  areas whose value the county folds into the homes, and lots / new construction the 2026 roll
+  has not valued yet. They would render as the cheapest land in the city.
+- Kept "Institutional" parcels (taxable 6xx classes with no exemption: Mission Hospital, which is
+  for-profit; churches sold to LLCs; group homes; parsonages) were checked against their 2026 tax
+  bills on 2026-09-30: every valued one is billed with $0 exempt value.
 """
 from __future__ import annotations
 
@@ -421,11 +427,12 @@ for root, grp_nmp in nmp.groupby("root"):
     row["exempt_rec"] = int(par["exempt_rec"])
     row["Improved"] = "Y" if taxable["Improved"].eq("Y").any() else par["Improved"]
     row["n_accounts"] = len(taxable)
-    row["n_condo_units"] = int(pd.to_numeric(taxable["NmpType"], errors="coerce").eq(0).sum())
+    # Condo units: the stacked NMP units, plus the parent when it is itself a drawn condo unit.
+    is_unit = pd.to_numeric(taxable["NmpType"], errors="coerce").eq(0) | taxable["Class"].isin(CONDO_CLASSES)
+    row["n_condo_units"] = int(is_unit.sum())
     row["condo_regime"] = int(grp_nmp["NmpType"].eq(0).any())
     # Value held by condo-unit accounts the assessor gave no land (the §6d "unsplit" share).
-    unsplit = taxable[pd.to_numeric(taxable["NmpType"], errors="coerce").eq(0)
-                      & pd.to_numeric(taxable["land_val"], errors="coerce").fillna(0).le(0)]
+    unsplit = taxable[is_unit & pd.to_numeric(taxable["land_val"], errors="coerce").fillna(0).le(0)]
     row["unsplit_val"] = float(pd.to_numeric(unsplit["tot_appr_val"], errors="coerce").fillna(0).sum())
     row["exempt_member_val"] = float(pd.to_numeric(members.loc[members["exempt_rec"].astype(int).eq(1),
                                                                "tot_appr_val"], errors="coerce").fillna(0).sum())
@@ -476,6 +483,17 @@ ex = parcel[(parcel["exemption_flag"] == 0) & ~drop_cat].copy()
 if abs(parcel["tot_appr_val"].sum() - ex["tot_appr_val"].sum() - dropped["tot_appr_val"].sum()) > 1:
     raise RuntimeError("Exemption filter does not conserve value")
 log(f"After exempt/utility filter -> {len(ex):,}")
+
+# ── no valuation -> not shipped ───────────────────────────────────────────────
+# A parcel with no value at all ($0 land AND $0 improvements) says nothing about land value, and
+# would render as the cheapest land in the city. On 2026-09-30 that was 734 parcels: 325 HOA
+# common areas / reserved areas whose value the county folds into the surrounding homes, and
+# ~400 lots and new houses, townhomes and apartments the 2026 roll has not valued yet. Dropped
+# (they show as gaps), like the zero-value filters in run_providence.py / run_stlouis.py / run_dmv.py.
+unvalued = ex["tot_appr_val"].fillna(0).le(0)
+log(f"Dropping {int(unvalued.sum()):,} parcels with no valuation ($0 land + $0 improvements): "
+    f"{ex.loc[unvalued, 'PROPERTY_CATEGORY'].value_counts().head(6).to_dict()}")
+ex = ex[~unvalued].copy()
 
 ex["property_land_use_category"] = ex["PROPERTY_CATEGORY"]
 ex["land_value"] = pd.to_numeric(ex["land_val"], errors="coerce")
@@ -552,15 +570,10 @@ vacant_class = ex["property_land_use_category"].eq("Vacant Land")
 stale = refined.eq("Vacant") & vacant_class & (impr.gt(0) | ex["bld_ar"].eq(1))
 share_land = land / (land + impr).where(lambda s: s > 0)
 refined[stale] = np.where(impr[stale].gt(0) & share_land[stale].ge(SF_CUTOFF), "Underdeveloped", None)
-# No valuation at all is not evidence of vacancy (new splits, unvalued new construction) —
-# except where the assessor itself designates the lot vacant.
-unvalued = ex["full_market_value"].fillna(0).le(0)
-refined[unvalued & ~vacant_class] = None
 # The land share of an estimated condo lot is our estimate, not the assessor's.
 refined[ex["condo_land_imputed"].eq(1) & refined.eq("Underdeveloped")] = None
 ex["property_land_use_refined"] = refined
-log(f"Vacant-class overrides: {int(stale.sum())} stale vacant classes with building evidence; "
-    f"{int((unvalued & ~vacant_class).sum())} unvalued non-vacant parcels left unclassified")
+log(f"Vacant-class overrides: {int(stale.sum())} stale vacant classes with building evidence")
 
 # ── canonical fields ──────────────────────────────────────────────────────────
 den = ex["land_area_sqft"].replace(0, np.nan)
