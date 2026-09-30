@@ -7,8 +7,10 @@ Usage:
 
 Platforms:
     macOS   — installs via Homebrew (brew install tippecanoe pmtiles)
-    Linux   — installs via apt-get; falls back to building tippecanoe from source
-    Windows — installs inside WSL2 via apt-get (tippecanoe has no native Windows binary)
+    Linux   — builds tippecanoe from source; pmtiles via apt-get or the GitHub release
+    Windows — the same, inside WSL2 (tippecanoe has no native Windows binary)
+
+An installed tippecanoe older than MIN_TIPPECANOE is upgraded (rebuilt on Linux/WSL).
 
 Both binaries are required by parquet_to_pmtiles.py:
     tippecanoe  https://github.com/felt/tippecanoe
@@ -19,6 +21,7 @@ from __future__ import annotations
 
 import json
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -44,6 +47,30 @@ def check_native(binary: str) -> bool:
         print(f"  {binary} already installed: {version}")
         return True
     return False
+
+
+# parquet_to_pmtiles.py zoom-gates each H3 resolution with per-feature `tippecanoe: {minzoom,
+# maxzoom}` ranges. Ubuntu 24.04's apt tippecanoe (2.49) keeps only ONE such feature per tile, so
+# the whole `parcels_low` hex layer bakes empty with no error. felt/tippecanoe 2.82 is verified.
+MIN_TIPPECANOE = (2, 82, 0)
+
+
+def tippecanoe_ok(prefix: list[str] | None = None) -> bool:
+    """True if tippecanoe runs (natively, or under `prefix` such as ["wsl", "--"]) and is at
+    least MIN_TIPPECANOE."""
+    try:
+        r = subprocess.run([*(prefix or []), "tippecanoe", "--version"], capture_output=True, text=True)
+    except FileNotFoundError:
+        return False
+    m = re.search(r"(\d+)\.(\d+)\.(\d+)", (r.stdout or "") + (r.stderr or ""))
+    if r.returncode != 0 or not m:
+        return False
+    version = tuple(int(x) for x in m.groups())
+    ok = version >= MIN_TIPPECANOE
+    need = ".".join(map(str, MIN_TIPPECANOE))
+    print(f"  tippecanoe {'.'.join(map(str, version))} found"
+          + ("" if ok else f" — older than {need}, which bakes an empty H3 hex layer; upgrading"))
+    return ok
 
 
 def check_wsl(binary: str) -> bool:
@@ -162,21 +189,20 @@ def install_macos() -> None:
         sys.exit(1)
 
     print("\n--- Installing tippecanoe ---")
-    if not check_native("tippecanoe"):
+    if not shutil.which("tippecanoe"):
         run(["brew", "install", "tippecanoe"])
+    elif not tippecanoe_ok():
+        run(["brew", "upgrade", "tippecanoe"])
 
     print("\n--- Installing pmtiles ---")
     if not check_native("pmtiles"):
         run(["brew", "install", "pmtiles"])
 
 
-# Always build tippecanoe from source: distro packages lag badly, and Ubuntu 24.04's apt
-# tippecanoe (2.49) keeps only ONE feature per tile from GeoJSON whose features carry per-feature
-# `tippecanoe: {minzoom, maxzoom}` ranges — exactly how parquet_to_pmtiles.py zoom-gates each H3
-# resolution, so the whole `parcels_low` hex layer baked empty. felt/tippecanoe 2.82 is fine.
+# tippecanoe is always built from source, never apt: distro packages lag (see MIN_TIPPECANOE).
 def install_linux() -> None:
     print("\n--- Installing tippecanoe ---")
-    if not check_native("tippecanoe"):
+    if not tippecanoe_ok():
         _build_tippecanoe_from_source()
 
     print("\n--- Installing pmtiles ---")
@@ -192,9 +218,10 @@ def install_linux() -> None:
 
 
 def _build_tippecanoe_from_source() -> None:
-    """Clone and build tippecanoe from source (Linux fallback)."""
+    """Clone and build tippecanoe from source into /usr/local/bin."""
     print("  Installing build dependencies...")
-    run(["sudo", "apt-get", "install", "-y", "build-essential", "libsqlite3-dev", "zlib1g-dev"])
+    run(["sudo", "apt-get", "update", "-qq"])
+    run(["sudo", "apt-get", "install", "-y", "build-essential", "libsqlite3-dev", "zlib1g-dev", "git"])
     src = Path(tempfile.mkdtemp()) / "tippecanoe"
     run(["git", "clone", "--depth=1", "https://github.com/felt/tippecanoe.git", str(src)])
     run(["make", "-j4"], cwd=str(src))
@@ -221,8 +248,8 @@ def install_windows() -> None:
         sys.exit(1)
 
     print("\n--- Installing tippecanoe (via WSL) ---")
-    if not check_wsl("tippecanoe"):
-        # From source, never apt — see install_linux().
+    if not tippecanoe_ok(["wsl", "--"]):
+        # From source, never apt — see MIN_TIPPECANOE.
         run(["wsl", "--", "sudo", "apt-get", "update", "-qq"])
         run(["wsl", "--", "sudo", "apt-get", "install", "-y",
              "build-essential", "libsqlite3-dev", "zlib1g-dev", "git"])
