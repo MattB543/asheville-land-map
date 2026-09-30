@@ -13,7 +13,6 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from azure.storage.blob import BlobServiceClient
 from shapely.geometry import box
 
 # Add parent directory to path for imports
@@ -363,21 +362,33 @@ def add_region_value_totals(gdf: gpd.GeoDataFrame, metadata: dict) -> None:
     print(f"  region value totals added for: {sorted(groups.keys())}")
 
 
+# Decimals kept per float attribute in the tiles (default 2 — see write_geojson). land_area_acres is
+# the DENOMINATOR of every client-side per-sqft value, so 2 decimals (±218 sqft) distorted small
+# lots' $/sqft by up to ~50% (a 0.014967-acre townhome became 0.01 acres). 6 decimals = ±0.04 sqft.
+FLOAT_DECIMALS = {"land_area_acres": 6}
+
+
+def round_floats(value, column: str):
+    """Round one attribute value the way write_geojson rounds its column."""
+    return round(value, FLOAT_DECIMALS.get(column, 2)) if isinstance(value, float) else value
+
+
 def write_geojson(gdf: gpd.GeoDataFrame, output_path: Path) -> None:
     """Write GeoDataFrame to GeoJSON.
 
-    Round float attributes to 2 decimals first. Full-precision (17-significant-digit)
-    floats across ~100k+ features overflow tippecanoe's per-tile attribute value pool
-    and get mis-encoded — e.g. land_value_per_sqft picking up an unrelated parcel's
-    dollar value, producing false multi-thousand-$/sqft spikes on the map. Rounding
-    collapses the distinct-value explosion; display precision is unaffected. NaN is
-    preserved (written as null); only ±inf is normalized to null.
+    Round float attributes to 2 decimals first (FLOAT_DECIMALS overrides per column).
+    Full-precision (17-significant-digit) floats across ~100k+ features overflow
+    tippecanoe's per-tile attribute value pool and get mis-encoded — e.g.
+    land_value_per_sqft picking up an unrelated parcel's dollar value, producing false
+    multi-thousand-$/sqft spikes on the map. Rounding collapses the distinct-value
+    explosion; display precision is unaffected. NaN is preserved (written as null);
+    only ±inf is normalized to null.
     """
     gdf = gdf.copy()
     geom_col = gdf.geometry.name
     for c in gdf.columns:
         if c != geom_col and pd.api.types.is_float_dtype(gdf[c]):
-            gdf[c] = gdf[c].replace([np.inf, -np.inf], np.nan).round(2)
+            gdf[c] = gdf[c].replace([np.inf, -np.inf], np.nan).round(FLOAT_DECIMALS.get(c, 2))
     gdf.to_file(output_path, driver="GeoJSON")
 
 
@@ -685,7 +696,8 @@ def build_h3_aggregate(gdf: gpd.GeoDataFrame, resolution: int) -> gpd.GeoDataFra
     # fraction, so $/sqft equals the covering parcel's own rate) — the artifact is purely the
     # rounding zeroing the denominator. <0.005 ac (~218 sqft) of covered land is never a whole
     # parcel (sub-500-sqft remnants are already dropped upstream), so these are spurious slivers
-    # of a parcel's edge — drop them so the rounded denominator can never be 0.
+    # of a parcel's edge — drop them so the rounded denominator can never be 0. (Acreage is now
+    # written at FLOAT_DECIMALS precision; the drop stays as a guard against such slivers.)
     if "land_area_acres" in out.columns:
         _la = pd.to_numeric(out["land_area_acres"], errors="coerce").round(2)
         out = out[_la > 0].reset_index(drop=True)
@@ -938,7 +950,8 @@ def build_pmtiles_h3_native(
     print(f"PMTiles created: {pmtiles_path}")
 
 
-def tighten_pmtiles_header_bounds(pmtiles_path: Path, bounds, pmtiles_bin: str = "pmtiles") -> None:
+def tighten_pmtiles_header_bounds(pmtiles_path: Path, bounds, pmtiles_bin: str = "pmtiles",
+                                  use_wsl: bool = False) -> None:
     """Rewrite the PMTiles header's geographic extent to the DATA's real bounds.
 
     tippecanoe/tile-join report an archive's extent by snapping to TILE edges at the
@@ -955,9 +968,12 @@ def tighten_pmtiles_header_bounds(pmtiles_path: Path, bounds, pmtiles_bin: str =
     if not bounds or len(bounds) != 4:
         return
     minx, miny, maxx, maxy = (float(v) for v in bounds)
+    # With --wsl the pmtiles binary lives inside WSL: run it there, on /mnt/<drive> paths.
+    run = (lambda *a: ["wsl", "--", pmtiles_bin, *a]) if use_wsl else (lambda *a: [pmtiles_bin, *a])
+    arg = (lambda q: windows_path_to_wsl(Path(q).resolve())) if use_wsl else str
     try:
         hdr = json.loads(subprocess.run(
-            [pmtiles_bin, "show", "--header-json", str(pmtiles_path)],
+            run("show", "--header-json", arg(pmtiles_path)),
             capture_output=True, text=True, check=True).stdout)
         before = hdr.get("bounds")
         # `pmtiles show --header-json` / `pmtiles edit --header-json` speak degrees in a
@@ -969,7 +985,7 @@ def tighten_pmtiles_header_bounds(pmtiles_path: Path, bounds, pmtiles_bin: str =
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
             json.dump(hdr, fh)
             tmp = fh.name
-        subprocess.run([pmtiles_bin, "edit", str(pmtiles_path), f"--header-json={tmp}"],
+        subprocess.run(run("edit", arg(pmtiles_path), f"--header-json={arg(tmp)}"),
                        capture_output=True, text=True, check=True)
         os.unlink(tmp)
         if before != hdr["bounds"]:
@@ -1221,8 +1237,7 @@ def main() -> None:
                     # Round floats to 2 dp — same tippecanoe value-pool overflow as the
                     # parcel layer (see write_geojson); the hex layer is written by hand
                     # here so it needs the same treatment or hexes show false mega-spikes.
-                    props = {k: (None if (isinstance(v, float) and pd.isna(v))
-                                 else round(v, 2) if isinstance(v, float) else v)
+                    props = {k: (None if (isinstance(v, float) and pd.isna(v)) else round_floats(v, k))
                              for k, v in row.items() if k != "geometry"}
                     feats.append({
                         "type": "Feature",
@@ -1280,7 +1295,7 @@ def main() -> None:
             convert_mbtiles_to_pmtiles(mbtiles_path, pmtiles_path, args.pmtiles, use_wsl=False)
 
     print(f"✅ PMTiles created: {pmtiles_path}")
-    tighten_pmtiles_header_bounds(pmtiles_path, metadata.get("bounds"), args.pmtiles)
+    tighten_pmtiles_header_bounds(pmtiles_path, metadata.get("bounds"), args.pmtiles, use_wsl=use_wsl)
 
     # Upload if requested
     if args.upload:
@@ -1292,6 +1307,8 @@ def main() -> None:
         print("=" * 60)
         print("Step 4: Uploading to Azure Blob Storage")
         print("=" * 60)
+
+        from azure.storage.blob import BlobServiceClient  # only needed for --upload
 
         # Tune for large PMTiles: chunk into 4 MB blocks with long timeouts + retries, so a slow
         # link doesn't time out on a single-shot PUT of a 100+ MB file (matches upload_city_dev.py).

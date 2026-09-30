@@ -32,7 +32,7 @@ import {
 import { formatCityLabel, CITIES } from './cities';
 import { createJurisdiction, OVERLAY_PALETTE } from './jurisdiction';
 import { loadDataDictionary, getCityConfig } from './utils.dictionary';
-import { urlToAsyncBuffer, sanitizeFeaturesInPlace } from './utils.sanitize';
+import { urlToFullAsyncBuffer, sanitizeFeaturesInPlace } from './utils.sanitize';
 import { bbox, normalizeWindingInPlace } from './utils.geo';
 import { quantileBreaks, percentile } from './utils.number';
 
@@ -581,11 +581,10 @@ async function runParkingWorkspace() {
       showLoading('Parsing parking lot geometries…');
       // Dev: prefer a local copy in viz/public/parking/ for the current city if present.
       const parkingUrl = await resolveLocalFirst(LOCAL_PARKING_DATASET_PATH, PARKING_DATASET_URL);
-      const asyncBuffer = await urlToAsyncBuffer(
-        parkingUrl,
-        {},
-        controller.signal
-      );
+      // One plain GET: the file is decoded in full anyway, and a CDN that caches by URL alone
+      // (not Range) can otherwise store the 1-byte range probe's 206 and serve it to every
+      // later read of the file.
+      const asyncBuffer = await urlToFullAsyncBuffer(parkingUrl, controller.signal);
       if (!isLoadActive(loadToken, controller)) return;
       const geojson = await toGeoJson({ file: asyncBuffer, compressors }) as GeoJSON.FeatureCollection;
       if (!isLoadActive(loadToken, controller)) return;

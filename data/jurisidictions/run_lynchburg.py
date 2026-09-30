@@ -129,7 +129,12 @@ def fetch_parcels():
                 # NB: gpd.read_file(BytesIO(...)) fails here under geopandas 1.1.4 / pyogrio
                 # ("FeatureError: URL rejected: No host part in the URL" — GDAL tries to treat
                 # the buffer as a URL). The payload is valid GeoJSON, so parse it directly.
-                feats = json.loads(r.content).get("features", [])
+                payload = json.loads(r.content)
+                # ArcGIS reports failures as HTTP 200 + {"error": ...}; reading that as an empty
+                # page ended pagination early and cached a partial pull. Retry it instead.
+                if "error" in payload or "features" not in payload:
+                    raise RuntimeError(f"ArcGIS error payload: {str(payload.get('error', payload))[:200]}")
+                feats = payload["features"]
                 gdf = (gpd.GeoDataFrame.from_features(feats, crs="EPSG:4326")
                        if feats else gpd.GeoDataFrame(geometry=[], crs="EPSG:4326"))
                 break
@@ -147,6 +152,9 @@ def fetch_parcels():
         if len(gdf) < PAGE:
             break
     geom = gpd.GeoDataFrame(pd.concat(pages, ignore_index=True), crs="EPSG:4326")
+    # Only cache a provably complete pull.
+    if len(geom) != total or geom["OBJECTID"].duplicated().any():
+        raise RuntimeError(f"Pulled {len(geom):,} rows but the layer reported {total:,} — not caching")
     geom.to_parquet(GEOM_CACHE, index=False)
     log(f"  cached geometry -> {GEOM_CACHE.name} ({len(geom):,} rows)")
     return geom

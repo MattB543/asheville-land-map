@@ -170,18 +170,14 @@ def install_macos() -> None:
         run(["brew", "install", "pmtiles"])
 
 
+# Always build tippecanoe from source: distro packages lag badly, and Ubuntu 24.04's apt
+# tippecanoe (2.49) keeps only ONE feature per tile from GeoJSON whose features carry per-feature
+# `tippecanoe: {minzoom, maxzoom}` ranges — exactly how parquet_to_pmtiles.py zoom-gates each H3
+# resolution, so the whole `parcels_low` hex layer baked empty. felt/tippecanoe 2.82 is fine.
 def install_linux() -> None:
     print("\n--- Installing tippecanoe ---")
     if not check_native("tippecanoe"):
-        if shutil.which("apt-get"):
-            run(["sudo", "apt-get", "update", "-qq"])
-            result = run(["sudo", "apt-get", "install", "-y", "tippecanoe"], check=False)
-            if result.returncode != 0:
-                print("  apt install failed; building tippecanoe from source...")
-                _build_tippecanoe_from_source()
-        else:
-            print("  apt-get not available; building tippecanoe from source...")
-            _build_tippecanoe_from_source()
+        _build_tippecanoe_from_source()
 
     print("\n--- Installing pmtiles ---")
     if not check_native("pmtiles"):
@@ -226,15 +222,13 @@ def install_windows() -> None:
 
     print("\n--- Installing tippecanoe (via WSL) ---")
     if not check_wsl("tippecanoe"):
+        # From source, never apt — see install_linux().
         run(["wsl", "--", "sudo", "apt-get", "update", "-qq"])
-        result = run(["wsl", "--", "sudo", "apt-get", "install", "-y", "tippecanoe"], check=False)
-        if result.returncode != 0:
-            print("  apt install failed inside WSL; building from source...")
-            run(["wsl", "--", "sudo", "apt-get", "install", "-y",
-                 "build-essential", "libsqlite3-dev", "zlib1g-dev"])
-            run(["wsl", "--", "bash", "-c",
-                 "git clone --depth=1 https://github.com/felt/tippecanoe.git /tmp/tippecanoe"
-                 " && cd /tmp/tippecanoe && make -j4 && sudo make install"])
+        run(["wsl", "--", "sudo", "apt-get", "install", "-y",
+             "build-essential", "libsqlite3-dev", "zlib1g-dev", "git"])
+        run(["wsl", "--", "bash", "-c",
+             "rm -rf /tmp/tippecanoe && git clone --depth=1 https://github.com/felt/tippecanoe.git"
+             " /tmp/tippecanoe && cd /tmp/tippecanoe && make -j4 && sudo make install"])
 
     print("\n--- Installing pmtiles (via WSL) ---")
     if not check_wsl("pmtiles"):

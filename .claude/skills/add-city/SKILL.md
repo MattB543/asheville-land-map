@@ -304,6 +304,16 @@ Boston.
   `wsl bash -c "pmtiles show --metadata <file>"` (expect `parcels` z13-14, `parcels_low` z0-12,
   and `parcels_under` z2-14). Note `wsl pmtiles show /mnt/c/...` from Git-bash mangles the path —
   wrap it in `wsl bash -c "..."`.
+- **Never use the distro's apt `tippecanoe` (Ubuntu 24.04 ships 2.49).** It keeps only ONE feature
+  per tile from GeoJSON whose features carry per-feature `"tippecanoe": {minzoom, maxzoom}` —
+  which is how the H3 `parcels_low` layer gates each resolution — so the hexes bake EMPTY with no
+  error (bake log: `dropped_by_rate` ≈ the hex count). Build felt/tippecanoe from source (2.82 is
+  fine); `install_tippecanoe.py` now always does. Check `tippecanoe --version` in WSL before baking,
+  and after a bake confirm a hex tile is populated, e.g. `tippecanoe-decode` of one z10-11 tile.
+  (Found on Asheville, 2026-09-29.)
+- **With `--wsl`, `pmtiles` only exists inside WSL** — the header-bounds tightening step used to
+  call it natively and silently skip ("Could not tighten PMTiles header bounds: [WinError 2]"),
+  leaving the initial camera fitted to tile edges. It now runs through WSL too.
 - **The "Vacant & Underdeveloped" tab renders a dedicated `parcels_under` layer, NOT the hexes.**
   That tab only ever shows the underutilized subset (Vacant / Parking Lot / Underdeveloped), which
   is a small fraction of parcels (Detroit: ~80k of ~300k). The full parcel layer can't tile below
