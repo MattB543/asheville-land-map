@@ -17,87 +17,97 @@
 const SUBSTACK_EMBED_URL = 'https://progressandpoverty.substack.com/embed';
 const CONTACT_EMAIL = 'greg@landeconomics.org';
 
+// Styled with the AVL GO tokens from design-system.css (every page that loads this footer also
+// loads that stylesheet): a light footer with a top border, and an AVL GO dialog for the modal.
 const STYLES = `
 .cle-footer {
-  background: #1b1440;
-  color: #fff;
-  padding: 56px 24px 28px;
-  font-family: var(--font-sans, system-ui, sans-serif);
+  margin-top: 32px;
+  background: var(--avl-bg-surface);
+  color: var(--avl-text-body);
+  border-top: 1px solid var(--avl-border);
+  padding: 40px var(--app-gutter, 16px) 24px;
+  font-family: var(--avl-font-sans);
+  font-size: var(--avl-text-sm);
+  line-height: var(--avl-lh-sm);
 }
 .cle-footer__inner {
-  max-width: 1100px;
+  max-width: calc(var(--avl-container) - 2 * var(--app-gutter, 16px));
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 40px;
+  gap: 32px 48px;
 }
-.cle-footer__brand img { height: 40px; display: block; margin-bottom: 14px; }
+.cle-footer__brand img { height: 32px; width: auto; display: block; margin-bottom: 12px; }
 .cle-footer__brand p {
   margin: 0;
-  color: rgba(255,255,255,.72);
-  font-size: .9rem;
-  line-height: 1.6;
-  max-width: 34ch;
+  color: var(--avl-text-body);
+  line-height: var(--avl-leading-relaxed);
+  max-width: 40ch;
 }
 .cle-footer__brand a.cle-footer__site {
   display: block;
   width: fit-content;
-  margin-top: 12px;
-  color: #b7e3e0;
-  font-size: .9rem;
+  margin-top: 10px;
+  color: var(--avl-link);
+  font-weight: var(--font-medium);
   text-decoration: none;
 }
-.cle-footer__brand a.cle-footer__site:hover { text-decoration: underline; }
+.cle-footer__brand a.cle-footer__site:hover { color: var(--avl-link-hover); text-decoration: underline; }
 .cle-footer__cta h3 {
-  margin: 0 0 10px;
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  font-family: var(--avl-font-display);
+  font-size: var(--avl-text-2xl);
+  line-height: var(--avl-lh-2xl);
+  font-weight: var(--font-semibold);
+  color: var(--avl-text-strong);
 }
 .cle-footer__cta p {
-  margin: 0 0 18px;
-  color: rgba(255,255,255,.72);
-  font-size: .92rem;
-  line-height: 1.6;
-  max-width: 44ch;
+  margin: 0 0 16px;
+  color: var(--avl-text-body);
+  line-height: var(--avl-leading-relaxed);
+  max-width: 48ch;
 }
 .cle-footer__subscribe {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 0;
-  border-radius: 9999px;
-  background: #b7e3e0;
-  color: #1b1440;
+  border: 1px solid var(--avl-accent);
+  border-radius: var(--avl-radius-lg);
+  background: var(--avl-accent);
+  color: var(--avl-on-accent);
   font-family: inherit;
-  font-weight: 700;
-  font-size: .95rem;
-  padding: 12px 28px;
+  font-weight: var(--font-medium);
+  font-size: var(--avl-text-sm);
+  line-height: var(--avl-lh-sm);
+  padding: 8px 20px;
   cursor: pointer;
-  transition: background .15s ease;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
-.cle-footer__subscribe:hover { background: #d3efed; }
-.cle-footer__advocacy {
-  margin-top: 18px;
-  font-size: .85rem;
-  color: rgba(255,255,255,.6);
+.cle-footer__subscribe:hover { background: var(--avl-accent-hover); border-color: var(--avl-accent-hover); }
+.cle-footer__cta .cle-footer__advocacy {
+  max-width: none;
+  margin: 16px 0 0;
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+  color: var(--avl-text-muted);
 }
-.cle-footer__advocacy a { color: rgba(255,255,255,.85); text-decoration: underline; text-underline-offset: 2px; }
-.cle-footer__advocacy a:hover { color: #fff; }
+.cle-footer__advocacy a,
+.cle-footer__bottom a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.cle-footer__advocacy a:hover,
+.cle-footer__bottom a:hover { color: var(--avl-text-label); }
 .cle-footer__bottom {
-  max-width: 1100px;
-  margin: 44px auto 0;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255,255,255,.12);
+  max-width: calc(var(--avl-container) - 2 * var(--app-gutter, 16px));
+  margin: 32px auto 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--avl-border);
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 24px;
+  gap: 8px 24px;
   justify-content: space-between;
-  font-size: .78rem;
-  color: rgba(255,255,255,.5);
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+  color: var(--avl-text-muted);
 }
-.cle-footer__bottom a { color: rgba(255,255,255,.65); text-decoration: none; }
-.cle-footer__bottom a:hover { color: #fff; text-decoration: underline; }
 
 .cle-subscribe-overlay {
   position: fixed;
@@ -106,59 +116,77 @@ const STYLES = `
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background: rgba(10, 8, 28, .62);
-  backdrop-filter: blur(4px);
+  padding: 16px;
+  background: var(--avl-overlay);
+  animation: fadeIn var(--transition-fast);
 }
 .cle-subscribe-dialog {
   position: relative;
   width: 100%;
-  max-width: 440px;
-  background: #fff;
-  color: #17181c;
-  border-radius: 16px;
-  padding: 28px;
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,.4);
-  font-family: var(--font-sans, system-ui, sans-serif);
+  max-width: 28rem;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--avl-bg-surface);
+  color: var(--avl-text-body);
+  border: 1px solid var(--avl-border);
+  border-radius: var(--avl-radius-xl);
+  padding: 24px;
+  box-shadow: var(--avl-shadow-xl);
+  font-family: var(--avl-font-sans);
+  font-size: var(--avl-text-sm);
+  line-height: var(--avl-lh-sm);
 }
 .cle-subscribe-dialog .cle-kicker {
-  margin: 0 0 6px;
-  font-size: .72rem;
-  font-weight: 700;
-  letter-spacing: .16em;
+  margin: 0 0 4px;
+  font-size: var(--avl-text-xs);
+  line-height: var(--avl-lh-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--avl-tracking-label);
   text-transform: uppercase;
-  color: #342877;
+  color: var(--avl-link);
 }
-.cle-subscribe-dialog h2 { margin: 0 0 6px; font-size: 1.45rem; padding-right: 32px; }
-.cle-subscribe-dialog .cle-sub { margin: 0 0 16px; font-size: .88rem; color: #5b5e6b; line-height: 1.5; }
+.cle-subscribe-dialog h2 {
+  margin: 0 0 6px;
+  padding-right: 32px;
+  font-size: var(--avl-text-xl);
+  line-height: var(--avl-lh-xl);
+  font-weight: var(--font-bold);
+  color: var(--avl-text-strong);
+}
+.cle-subscribe-dialog .cle-sub { margin: 0 0 16px; color: var(--avl-text-body); line-height: var(--avl-leading-relaxed); }
 .cle-subscribe-dialog iframe {
   display: block;
   width: 100%;
   height: 320px;
-  border: 1px solid #e4e5ea;
-  border-radius: 10px;
-  background: #fff;
+  border: 1px solid var(--avl-border);
+  border-radius: var(--avl-radius-lg);
+  background: #ffffff; /* the Substack embed is always light */
 }
 .cle-subscribe-close {
   position: absolute;
-  right: 14px;
-  top: 14px;
-  width: 34px;
-  height: 34px;
+  right: 12px;
+  top: 12px;
+  width: 32px;
+  height: 32px;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--avl-radius-lg);
   background: transparent;
-  color: #9195a1;
+  color: var(--avl-text-faint);
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
 }
-.cle-subscribe-close:hover { background: #f0f1f4; color: #33353d; }
-.cle-subscribe-thanks { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 600; margin: 8px 0 4px; }
+.cle-subscribe-close:hover { background: var(--avl-bg-muted); color: var(--avl-text-body); }
+.cle-subscribe-thanks {
+  display: flex; align-items: center; gap: 10px; margin: 8px 0 4px;
+  font-size: var(--avl-text-lg); line-height: var(--avl-lh-lg); font-weight: var(--font-semibold); color: var(--avl-text-strong);
+}
 .cle-subscribe-thanks .tick {
-  width: 34px; height: 34px; border-radius: 50%;
+  width: 32px; height: 32px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
-  background: #d9f2e5; color: #0c7a4d; font-size: 18px;
+  background: var(--avl-success-bg); color: var(--avl-success-text);
+  border: 1px solid var(--avl-success-border); font-size: 16px;
 }
 `;
 
@@ -259,7 +287,8 @@ export function initCleFooter(): void {
     <div class="cle-footer__inner">
       <div class="cle-footer__brand">
         <a href="https://landeconomics.org" target="_blank" rel="noopener" aria-label="Center for Land Economics">
-          <img src="/cle-logo-white.svg" alt="Center for Land Economics">
+          <img class="only-light" src="/cle-logo-2color.svg" alt="Center for Land Economics" width="190" height="32">
+          <img class="only-dark" src="/cle-logo-white.svg" alt="Center for Land Economics" width="190" height="32">
         </a>
         <p>The Center for Land Economics conducts research and provides education to promote equitable assessments and foster sustainable development.</p>
         <a class="cle-footer__site" href="https://landeconomics.org" target="_blank" rel="noopener">landeconomics.org &rarr;</a>

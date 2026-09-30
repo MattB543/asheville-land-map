@@ -4,7 +4,8 @@
  * Walks the app's three views (3D land value, Underused, Parking), snapshots
  * each map canvas (maps are created with preserveDrawingBuffer: true), scrapes
  * the already-formatted stats from the sidebar DOM, and lays everything out in
- * a CLE-branded A4 document with a link back to the live map. The report is
+ * an A4 document in the AVL GO look (brand-blue header band with the AVL GO wordmark; CLE credited
+ * in every footer and on the closing page) with a link back to the live map. The report is
  * itself a funnel artifact: every page footer carries civicmapper.org,
  * landeconomics.org, and the Substack.
  */
@@ -21,10 +22,12 @@ export type ReportContext = {
   tabsAvailable: () => { under: boolean; parking: boolean };
 };
 
-const PURPLE: [number, number, number] = [52, 40, 119];   // #342877
-const DARK: [number, number, number] = [23, 24, 28];
-const GRAY: [number, number, number] = [91, 94, 107];
-const LIGHT_BG: [number, number, number] = [241, 239, 249]; // primary-50
+// AVL GO palette (design-system.css tokens), as jsPDF RGB triples.
+const BRAND: [number, number, number] = [8, 113, 170];      // --avl-brand-600 #0871aa
+const DARK: [number, number, number] = [16, 24, 40];        // --avl-gray-900 #101828
+const GRAY: [number, number, number] = [106, 114, 130];     // --avl-gray-500 #6a7282
+const LIGHT_BG: [number, number, number] = [232, 244, 248]; // --avl-brand-50 #e8f4f8
+const RULE: [number, number, number] = [209, 213, 220];     // --avl-gray-300 #d1d5dc
 
 const PAGE_W = 210;
 const PAGE_H = 297;
@@ -164,7 +167,7 @@ export async function generateCityReport(ctx: ReportContext, onStatus: (msg: str
   ctx.setTab(originalTab as any);
 
   onStatus('Composing PDF…');
-  const logoWhite = await loadImage('/cle-logo-white.png');
+  const logoWhite = await loadImage('/avlgo-logo-white.svg');
   const logo2c = await loadImage('/cle-logo-2color.png');
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -190,7 +193,7 @@ export async function generateCityReport(ctx: ReportContext, onStatus: (msg: str
     pageNum += 1;
     if (pageNum > 1) doc.addPage();
     // Header band
-    doc.setFillColor(...PURPLE);
+    doc.setFillColor(...BRAND);
     doc.rect(0, 0, PAGE_W, 24, 'F');
     if (logoWhite) {
       const h = 7;
@@ -215,7 +218,7 @@ export async function generateCityReport(ctx: ReportContext, onStatus: (msg: str
     let h = w * (shot.h / shot.w);
     if (h > maxH) { h = maxH; w = h * (shot.w / shot.h); }
     const x = MARGIN + (CONTENT_W - w) / 2;
-    doc.setDrawColor(210, 208, 220);
+    doc.setDrawColor(...RULE);
     doc.setLineWidth(0.3);
     doc.addImage(shot.data, 'JPEG', x, y, w, h);
     doc.rect(x, y, w, h, 'S');
@@ -223,7 +226,7 @@ export async function generateCityReport(ctx: ReportContext, onStatus: (msg: str
   };
 
   const addSectionTitle = (text: string, y: number): number => {
-    doc.setTextColor(...PURPLE);
+    doc.setTextColor(...BRAND);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.text(text, MARGIN, y);
@@ -250,7 +253,7 @@ export async function generateCityReport(ctx: ReportContext, onStatus: (msg: str
   if (landBlurb) {
     doc.setFillColor(...LIGHT_BG);
     doc.roundedRect(MARGIN, y, CONTENT_W, 13, 2, 2, 'F');
-    doc.setTextColor(...PURPLE);
+    doc.setTextColor(...BRAND);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11.5);
     doc.text(doc.splitTextToSize(landBlurb, CONTENT_W - 10), MARGIN + 5, y + 8);
@@ -271,7 +274,7 @@ export async function generateCityReport(ctx: ReportContext, onStatus: (msg: str
         if (y > PAGE_H - 45) { y = addPageChrome('Underused Land (cont.)'); }
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10.5);
-        doc.setTextColor(...PURPLE);
+        doc.setTextColor(...BRAND);
         doc.text(stat.label, MARGIN, y);
         doc.setTextColor(...DARK);
         doc.text(stat.value, MARGIN + 60, y);
@@ -329,16 +332,16 @@ export async function generateCityReport(ctx: ReportContext, onStatus: (msg: str
   y = addBody('This report was generated with Civic Mapper, a free tool from the Center for Land Economics. CLE conducts research and provides education to promote equitable assessments and foster sustainable development for the benefit of communities.', y);
   y += 2;
   y = addBody('Explore the interactive map:', y, 9.5);
-  doc.setTextColor(...PURPLE);
+  doc.setTextColor(...BRAND);
   doc.setFontSize(9.5);
   doc.textWithLink(shareUrl, MARGIN, y, { url: shareUrl } as any);
   y += 9;
   y = addBody('To understand what these numbers mean for housing, taxes, and your city’s future, subscribe to Progress and Poverty, our newsletter on land value taxes, housing, and political economy:', y, 9.5);
-  doc.setTextColor(...PURPLE);
+  doc.setTextColor(...BRAND);
   doc.textWithLink('progressandpoverty.substack.com', MARGIN, y, { url: 'https://progressandpoverty.substack.com' } as any);
   y += 9;
   y = addBody('Working on land value tax policy where you live? We’d love to hear from you:', y, 9.5);
-  doc.setTextColor(...PURPLE);
+  doc.setTextColor(...BRAND);
   doc.textWithLink('greg@landeconomics.org', MARGIN, y, { url: 'mailto:greg@landeconomics.org' } as any);
 
   const slug = city.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'city';
