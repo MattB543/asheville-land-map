@@ -98,6 +98,19 @@ const restoredCameras = {
   umap: hasRealHashCamera('umap'),
 };
 
+// When a map can take sources and layers. Captured right after each map is constructed, so it can't
+// be missed: MapLibre's 'load' fires ONCE, after the first full render incl. every basemap tile, and
+// isStyleLoaded() is false whenever tiles are in flight. A `once('load')` registered late (after an
+// awaited step in init, or after the first load) therefore never fired and left the loading overlay up.
+// 'style.load' is enough to add sources, and lets parcel tiles start alongside the basemap's.
+const styleReady = new WeakMap<maplibregl.Map, Promise<void>>();
+function trackStyleReady(m: maplibregl.Map): void {
+  styleReady.set(m, new Promise<void>((resolve) => m.once('style.load', () => resolve())));
+}
+function whenStyleReady(m: maplibregl.Map): Promise<void> {
+  return styleReady.get(m) ?? Promise.resolve();
+}
+
 const map = new maplibregl.Map({
   container: 'map',
   // Default to OpenStreetMap; fallback style handled elsewhere
@@ -115,6 +128,7 @@ const map = new maplibregl.Map({
   // supersample: render at higher internal resolution (smooth lines)
   pixelRatio: HQ_PR
 });
+trackStyleReady(map);
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
 map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
@@ -138,6 +152,7 @@ const mapUnder = new maplibregl.Map({
   canvasContextAttributes: { preserveDrawingBuffer: true },
   pixelRatio: HQ_PR
 });
+trackStyleReady(mapUnder);
 mapUnder.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-left');
 mapUnder.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 mapUnder.dragRotate.disable();
@@ -175,6 +190,7 @@ if (ratioContainer) {
     hash: false,
     pixelRatio: HQ_PR
   });
+  trackStyleReady(mapRatio);
   mapRatio.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
   mapRatio.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 }
@@ -1575,11 +1591,7 @@ function addOrUpdateSourceFor(m: maplibregl.Map, withClick = false) {
 
 function addOrUpdateSourceWhenReady(m: maplibregl.Map, withClick = false) {
   if (!currentGeoJSON) return;
-  if ((m as any).isStyleLoaded && (m as any).isStyleLoaded()) {
-    addOrUpdateSourceFor(m, withClick);
-  } else {
-    m.once('load', () => addOrUpdateSourceFor(m, withClick));
-  }
+  void whenStyleReady(m).then(() => addOrUpdateSourceFor(m, withClick));
 }
 
 function addExtrusionLayerFor(m: maplibregl.Map, withClick = false) {
@@ -4360,11 +4372,7 @@ async function loadPmtilesDataset() {
         }
       };
       
-      if ((m as any).isStyleLoaded && (m as any).isStyleLoaded()) {
-        addSourceAndLayer();
-      } else {
-        m.once('load', addSourceAndLayer);
-      }
+      void whenStyleReady(m).then(addSourceAndLayer);
     };
 
     addSourceWhenReady(map, true, true);
@@ -4735,8 +4743,9 @@ async function init() {
   else setTab('main');
   
   unitsSelect.value = 'centimeters';
-  // Defer all map-mutating actions until the style is fully loaded.
-  map.once('load', async () => {
+  // Defer all map-mutating actions until the style is loaded (see whenStyleReady: a 'load' listener
+  // registered here, after the awaits above, could miss the event and never run).
+  void whenStyleReady(map).then(async () => {
     setQuality('fast');   // render at native resolution (see HQ_PR / quality notes above)
     // Apply any saved settings before loading data.
     loadSettings('main');
