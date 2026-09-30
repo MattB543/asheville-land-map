@@ -3482,15 +3482,20 @@ const POPUP_ALIAS_GROUPS: string[][] = [
 const POPUP_ALIAS_OF = new Map<string, string>(
   POPUP_ALIAS_GROUPS.flatMap((g, i) => g.map((k) => [k, `alias:${i}`] as [string, string])));
 
+// numOrNull() reads null and '' as 0 (Number(null) === 0), so missing values are tested explicitly.
+const isBlank = (v: unknown) => v === undefined || v === null || v === '';
+
 // PMTiles don't carry the per-sqft rates (they're computed client-side as value ÷ lot area, see
-// PER_SQFT_SRC), so derive them for the popup too instead of showing "—".
+// PER_SQFT_SRC), so derive them for the popup too instead of showing "—". A missing value derives
+// no rate (not a false $0), and a missing rate doesn't block the derivation.
 function withDerivedRates(props: Record<string, any>): Record<string, any> {
-  const acres = numOrNull(props.land_area_acres);
+  const acres = isBlank(props.land_area_acres) ? null : numOrNull(props.land_area_acres);
   if (acres == null || acres <= 0) return props;
   const out = { ...props };
   for (const [rate, src] of Object.entries(PER_SQFT_SRC)) {
+    if (!isBlank(out[rate]) || isBlank(out[src])) continue;
     const v = numOrNull(out[src]);
-    if (numOrNull(out[rate]) == null && v != null) out[rate] = v / (acres * 43560);
+    if (v != null) out[rate] = v / (acres * 43560);
   }
   return out;
 }
@@ -3562,7 +3567,10 @@ function buildPopupHTML(rawProps: Record<string, any>): string {
   // improvement_value ÷ its per-sqft would just yield land area again. Shown after the land row.
   const LAND_VALUE_KEYS = ['current_full_land_value', 'REALLANDVA', 'land_value'];
   const numFromKeys = (keys: string[]): number | null => {
-    for (const k of keys) { const v = numOrNull((props as any)[k]); if (v != null) return v; }
+    for (const k of keys) {
+      const v = isBlank((props as any)[k]) ? null : numOrNull((props as any)[k]);
+      if (v != null) return v;
+    }
     return null;
   };
   const landVal = numFromKeys(LAND_VALUE_KEYS);
